@@ -29,7 +29,6 @@ class Trick:
 
     def next_play(self, player):
         card = player.play_card(self)
-        print(player, 'plays', card)
         self.add_card(card)
         self.card_player[card] = player
 
@@ -221,8 +220,11 @@ class Pinochle:
         if self.printing:
             print('Trump is', self.trump)
 
-        trick_winner = None
+        trick_winner = self.current_players[0]
         while self.high_bidder.hand:
+
+            if self.printing:
+                print(str(trick_winner), 'is leading')
 
             trick = Trick(self.trump)
             for player in self.current_players:

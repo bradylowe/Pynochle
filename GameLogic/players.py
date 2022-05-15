@@ -82,7 +82,7 @@ class AutoPinochlePlayer(PinochlePlayer):
         if self.should_pay_trick(trick, remaining_players):
             counters = PinochleDeck.get_counters(options)
             card = counters[-1] if counters else options[-1]
-        elif trick.can_beat_leading([options[0]]) and options[0].value == Card.values[-1]:
+        elif trick.can_beat_winning_card([options[0]]) and options[0].value == Card.values[-1]:
             card = options[0]
         else:
             non_counters = PinochleDeck.get_non_counters(options)

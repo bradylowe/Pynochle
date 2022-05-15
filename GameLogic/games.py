@@ -47,7 +47,7 @@ class Trick:
         if card.suit == self.trump:
             self.trump_played = True
 
-    def can_beat_leading(self, cards):
+    def can_beat_winning_card(self, cards):
         """This method assumes that 'cards' is already in the appropriate suit"""
         if self.card_to_beat is None:
             return cards
@@ -62,10 +62,10 @@ class Trick:
             if self.trump_played and self.trump != self.leading_suit:
                 return hand[self.leading_suit]
             else:
-                return self.can_beat_leading(hand[self.leading_suit]) or hand[self.leading_suit]
+                return self.can_beat_winning_card(hand[self.leading_suit]) or hand[self.leading_suit]
         elif hand.has_suit(self.trump):
             if self.trump_played:
-                return self.can_beat_leading(hand[self.trump]) or hand[self.trump]
+                return self.can_beat_winning_card(hand[self.trump]) or hand[self.trump]
             else:
                 return hand[self.trump]
         else:
@@ -221,23 +221,23 @@ class Pinochle:
         if self.printing:
             print('Trump is', self.trump)
 
-        winner_of_hand = None
+        trick_winner = None
         while self.high_bidder.hand:
 
             trick = Trick(self.trump)
             for player in self.current_players:
                 trick.next_play(player)
 
-            winner_of_hand = trick.winner()
-            winner_of_hand.add_counters(trick.counters())
-            self.set_lead_player(winner_of_hand)
+            trick_winner = trick.winner()
+            trick_winner.add_counters(trick.counters())
+            self.set_lead_player(trick_winner)
 
             if self.printing:
                 print(str(trick))
                 print('---------------------------')
 
         # Add points for last trick
-        winner_of_hand.add_counters(self.last_trick_value)
+        trick_winner.add_counters(self.last_trick_value)
 
         counters = self.high_bidder.counters + self.high_bidder.partner.counters
         meld = self.high_bidder.meld.meld_with_trump[self.trump]

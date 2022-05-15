@@ -62,28 +62,31 @@ def run_training(base_dir, n_data, tag='',
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    #criterion = nn.CrossEntropyLoss()
+    # Train for half the epochs with Mean-Squared Error loss function
     criterion = nn.MSELoss()
-    train_loss, train_accuracy, test_accuracy = train(model, optimizer, criterion,
-                                                      x_train.float(), y_train.float(),
-                                                      x_test.float(), y_test.float(),
-                                                      n_epochs//2)
+    print('\nTraining with', criterion)
+    train_loss_1, train_accuracy_1, test_accuracy_1 = train(model, optimizer, criterion,
+                                                            x_train.float(), y_train.float(),
+                                                            x_test.float(), y_test.float(),
+                                                            n_epochs//2)
 
+    # Train for half the epochs with L1 loss function
     criterion = nn.L1Loss()
-    train_loss, train_accuracy, test_accuracy = train(model, optimizer, criterion,
-                                                      x_train.float(), y_train.float(),
-                                                      x_test.float(), y_test.float(),
-                                                      n_epochs//2)
+    print('\nTraining with', criterion)
+    train_loss_2, train_accuracy_2, test_accuracy_2 = train(model, optimizer, criterion,
+                                                            x_train.float(), y_train.float(),
+                                                            x_test.float(), y_test.float(),
+                                                            n_epochs//2)
 
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(12, 6), sharex=True)
 
-    ax1.plot(train_accuracy)
+    ax1.plot(train_accuracy_1 + train_accuracy_2)
     ax1.set_ylabel("training accuracy")
 
-    ax2.plot(train_loss)
+    ax2.plot(train_loss_1 + train_loss_2)
     ax2.set_ylabel("training loss")
 
-    ax3.plot(test_accuracy)
+    ax3.plot(test_accuracy_1 + test_accuracy_2)
     ax3.set_ylabel("test accuracy")
 
     ax3.set_xlabel("epochs")

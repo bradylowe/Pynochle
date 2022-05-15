@@ -60,7 +60,7 @@ class Card:
         return self.suit == other.suit and Card.values.index(self.value) == Card.values.index(other.value)
 
     def __hash__(self):
-        return hash(self.suit + self.value)
+        return hash(self.suit + self.value + str(id(self)))
 
 
 class PartialDeck:

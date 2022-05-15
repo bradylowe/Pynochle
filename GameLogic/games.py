@@ -1,6 +1,6 @@
 from GameLogic.cards import PinochleDeck, DoublePinochleDeck, FirehousePinochleDeck
 from GameLogic.ledgers import PinochleLedger
-from GameLogic.players import PinochlePlayer, AutoPinochlePlayer, HumanPinochlePlayer
+from GameLogic.players import PinochlePlayer, AutoPinochlePlayer, RandomPinochlePlayer, HumanPinochlePlayer
 
 
 class Trick:
@@ -315,10 +315,11 @@ def test_game(game_type, players):
 def test():
     from time import time
 
-    players = [AutoPinochlePlayer('Alice', 100),
-               AutoPinochlePlayer('Bob', 100),
-               AutoPinochlePlayer('Charlie', 100),
-               AutoPinochlePlayer('Dave', 100)]
+    player_type = AutoPinochlePlayer
+    players = [player_type('Alice', 100),
+               player_type('Bob', 100),
+               player_type('Charlie', 100),
+               player_type('Dave', 100)]
 
     scores = []
     n_runs, count = 10000, 0
@@ -331,7 +332,7 @@ def test():
 
     print(' ')
     print('# of runs:', n_runs)
-    print('Time: {}'.format(round(time() - start, 1)))
+    print('Time: {} seconds'.format(round(time() - start, 1)))
     print('Average score:', round(sum(scores) / len(scores), 1) if scores else 0)
     print('Percent saved: {}%'.format(round(count / n_runs * 100.0, 1)))
 

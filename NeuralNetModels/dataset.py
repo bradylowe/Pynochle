@@ -4,19 +4,12 @@ from sklearn.model_selection import train_test_split
 from time import time
 import os.path as osp
 
+from NeuralNetModels import num_to_str
+
 
 def dataset_paths(n, base_dir, tag=''):
-    if n >= 1000000000:
-        n_billions = int(n / 1000000000)
-        base_file = f'{base_dir}/Datasets/dataset_{n_billions}G'
-    elif n >= 1000000:
-        n_millions = int(n / 1000000)
-        base_file = f'{base_dir}/Datasets/dataset_{n_millions}M'
-    elif n >= 1000:
-        n_thousands = int(n / 1000)
-        base_file = f'{base_dir}/Datasets/dataset_{n_thousands}K'
-    else:
-        base_file = f'{base_dir}/Datasets/dataset_{n}'
+    num_str = num_to_str(n)
+    base_file = f'{base_dir}/Datasets/dataset_{num_str}'
 
     if tag:
         infile, outfile = f'{base_file}_{tag}_input.csv', f'{base_file}_{tag}_output.csv'

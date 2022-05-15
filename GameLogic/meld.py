@@ -110,7 +110,7 @@ class Meld:
 
 if __name__ == "__main__":
 
-    from GameLogic.PlayingCards import DoublePinochleDeck, Hand
+    from GameLogic.cards import DoublePinochleDeck, Hand
 
     deck = DoublePinochleDeck()
     deck.shuffle()

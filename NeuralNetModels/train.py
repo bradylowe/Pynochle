@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 
+from NeuralNetModels import num_to_str
 from NeuralNetModels.PredictLegalPlays.model import Net
 from NeuralNetModels.dataset import load_dataset
 
+import os.path as osp
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
@@ -90,5 +92,10 @@ def run_training(base_dir, n_data, tag='',
     ax3.set_ylabel("test accuracy")
 
     ax3.set_xlabel("epochs")
-    fig.show()
-    input('Press Enter...')
+
+    outfile = f'train_{num_to_str(n_data)}examples_{num_to_str(n_epochs)}epochs.png'
+    outfile = osp.join(base_dir, 'Plots', outfile)
+    if tag:
+        outfile = outfile.replace('.png', '_{}.png'.format(tag))
+
+    fig.savefig(outfile)

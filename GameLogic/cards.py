@@ -303,6 +303,7 @@ def test_card(print_func=print):
     print_func(card)
     card_1, card_2 = Card('Clubs', '7'), Card('Clubs', '8')
     assert card_1 < card_2, '{} is not less than {}'.format(card_1, card_2)
+    assert card_1 != card_2, '{} is equal to {}'.format(card_1, card_2)
     card_1, card_2 = Card('Clubs', '8'), Card('Clubs', '7')
     assert card_1 > card_2, '{} is not greater than {}'.format(card_1, card_2)
     card_1, card_2 = Card('Clubs', '8'), Card('Diamonds', '7')
@@ -310,7 +311,7 @@ def test_card(print_func=print):
     card_1, card_2 = Card('Clubs', '7'), Card('Clubs', '7')
     assert card_1 == card_2, '{} is not equal to {}'.format(card_1, card_2)
     card_1, card_2 = Card('Clubs', '7'), Card('Diamonds', '7')
-    assert card_1 != card_2, '{} is erroneously equal to {}'.format(card_1, card_2)
+    assert card_1 != card_2, '{} is equal to {}'.format(card_1, card_2)
     print_func('------------')
 
 

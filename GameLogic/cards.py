@@ -57,7 +57,7 @@ class Card:
         return Card.values.index(self.value) > Card.values.index(other.value)
 
     def __eq__(self, other):
-        return self.suit == other.suit and Card.values.index(self.value) == Card.values.index(other.value)
+        return self.suit == other.suit and self.value == other.value
 
     def __hash__(self):
         return hash(self.suit + self.value + str(id(self)))

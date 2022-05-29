@@ -47,3 +47,13 @@ class CardEncoding:
 
         # Build a null one-hot array (all zeros) for a null card
         CardEncoding.one_hot[None] = [0] * CardEncoding.n
+
+
+class HandEncoding:
+
+    @staticmethod
+    def encode(hand):
+        encoding = [0] * CardEncoding.n
+        for card in hand:
+            encoding[CardEncoding.idx[card]] = 1
+        return encoding

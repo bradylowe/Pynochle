@@ -52,7 +52,7 @@ class CardEncoding:
 class HandEncoding:
 
     @staticmethod
-    def encode(hand):
+    def one_hot(hand):
         encoding = [0] * CardEncoding.n
         for card in hand:
             encoding[CardEncoding.idx[card]] = 1

@@ -175,12 +175,13 @@ class Pinochle:
         # Everyone keeps bidding until everyone passes except one person
         while sum(passed.values()) < len(self.current_players) - 1:
             for player in self.current_players:
-                this_bid = player.place_bid(current_bid, game_type.minimum_bid_increment)
-                if this_bid:
-                    current_bid = this_bid
-                    current_high_bidder = player
-                else:
-                    passed[player] = True
+                if not passed[player]:
+                    this_bid = player.place_bid(current_bid, game_type.minimum_bid_increment)
+                    if this_bid:
+                        current_bid = this_bid
+                        current_high_bidder = player
+                    else:
+                        passed[player] = True
 
         return current_high_bidder, current_bid
 

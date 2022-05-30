@@ -84,6 +84,12 @@ class Trick:
     def __str__(self):
         return ' | '.join([str(card) for card in self.cards])
 
+    def __bool__(self):
+        return len(self.cards) > 0
+
+    def __len__(self):
+        return len(self.cards)
+
 
 class Pinochle:
 

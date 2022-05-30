@@ -309,6 +309,9 @@ class FirehousePinochle(DoubleDeckPinochle):
         self.kitty.reset()
         super().update_current_players()
 
+    def pass_cards(self):
+        super().pass_cards()
+        self.kitty.add_counters(sum([1 for card in self.kitty.hand.cards if PinochleDeck.is_counter(card)]))
 
 def test_game(game_type, players):
     the_game = game_type(players)

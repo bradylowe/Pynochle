@@ -57,3 +57,20 @@ class HandEncoding:
         for card in hand:
             encoding[CardEncoding.idx[card]] = 1
         return encoding
+
+
+class PlayerEncoding:
+
+    n = 0
+    idx = {}
+    player = {}
+    one_hot = {}
+
+    @staticmethod
+    def build(players):
+        PlayerEncoding.n = len(players)
+        PlayerEncoding.player = {this_idx: this_player for this_idx, this_player in enumerate(players)}
+        PlayerEncoding.idx = {this_player: this_idx for this_idx, this_player in enumerate(players)}
+        PlayerEncoding.one_hot = {this_player: [0] * PlayerEncoding.n for this_idx, this_player in enumerate(players)}
+        for this_idx, this_player in enumerate(players):
+            PlayerEncoding.one_hot[this_player][this_idx] = 1

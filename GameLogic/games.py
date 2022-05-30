@@ -111,7 +111,7 @@ class Pinochle:
         self.high_bid = 0
         self.high_bidder = None
         self.current_players = []
-        self.human_player = None
+        self.human_player = self.find_human_player()
 
         self.winning_score = winning_score
         self.partner_gets_points = False
@@ -141,8 +141,13 @@ class Pinochle:
         self.current_players[2].new_hand(hands[2])
         self.current_players[3].new_hand(hands[3])
 
+    def find_human_player(self):
+        for player in self.players:
+            if isinstance(player, HumanPinochlePlayer):
+                return player
+
     def show_human_hand_and_meld(self):
-        if self.human_player:
+        if self.human_player and self.human_player in self.current_players:
             print(' ')
             print('Your hand')
             print('...')
@@ -163,13 +168,6 @@ class Pinochle:
         self.current_players = [self.players[i % N] for i in range(self.hand_count, self.hand_count + n)]
         for player in self.current_players:
             player.reset()
-
-        # Find human player
-        self.human_player = None
-        for player in self.current_players:
-            if isinstance(player, HumanPinochlePlayer):
-                self.human_player = player
-                break
 
     def bid(self):
         # If no one bids, then the bid gets dropped on the last bidder

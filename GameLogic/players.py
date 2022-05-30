@@ -217,3 +217,40 @@ class HumanPinochlePlayer(PinochlePlayer):
         cards = [self.hand.play(enumerated[idx]) for idx in discard_idxs]
         self.meld = Meld(self.hand)
         return cards
+
+
+class Kitty(PinochlePlayer):
+
+    def __init__(self, name='Kitty', balance=0, user_name=None):
+        super().__init__(name, balance, user_name)
+
+    def add_points(self, points):
+        pass
+
+    def remove_points(self, points):
+        pass
+
+    def reset(self):
+        self.counters = 0
+        self.is_high_bidder = False
+        self.partner = None
+
+    def new_hand(self, cards):
+        self.hand.set(cards)
+
+    def take_cards(self, cards):
+        self.hand.add(cards)
+
+    def place_bid(self, current_bid, bid_increment):
+        pass
+
+    def play_card(self, trick, remaining_players=None):
+        pass
+
+    def call_trump(self):
+        pass
+
+    def discard(self, n=0):
+        cards = self.hand.cards[:n]
+        self.hand.cards = self.hand.cards[n:]
+        return cards

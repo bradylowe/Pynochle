@@ -1,6 +1,6 @@
 from GameLogic.cards import PinochleDeck, DoublePinochleDeck, FirehousePinochleDeck
 from GameLogic.ledgers import PinochleLedger
-from GameLogic.players import PinochlePlayer, AutoPinochlePlayer, RandomPinochlePlayer, HumanPinochlePlayer
+from GameLogic.players import AutoPinochlePlayer, RandomPinochlePlayer, HumanPinochlePlayer, Kitty
 
 
 class Trick:
@@ -280,31 +280,29 @@ class FirehousePinochle(DoubleDeckPinochle):
 
     def __init__(self, players=None, ledger=None, winning_score=None):
         DoubleDeckPinochle.__init__(self, players, ledger, winning_score)
-        self.kitty = PinochlePlayer('Kitty')
+        self.kitty = Kitty()
 
     def deal(self, shuffle=True):
         hands = self.deck.deal()
         self.current_players[0].new_hand(hands[0])
         self.current_players[1].new_hand(hands[1])
         self.current_players[2].new_hand(hands[2])
-        self.kitty.hand.set(hands[3])
-
-    def pass_cards(self):
-        self.high_bidder.take_cards(self.kitty.hand.cards)
-        if isinstance(self.high_bidder, HumanPinochlePlayer):
-            print('New meld: ', self.high_bidder.meld)
-        self.kitty.hand.set(self.high_bidder.discard(self.n_cards_to_pass))
+        self.kitty.new_hand(hands[3])
 
     def set_partners(self):
-        high_bidder_idx = self.current_players.index(self.high_bidder)
-        self.current_players[high_bidder_idx].partner = PinochlePlayer('')
+        self.high_bidder.partner = self.kitty
+        self.kitty.partner = self.high_bidder.partner
 
-        idx = high_bidder_idx - 1
+        idx = self.current_players.index(self.high_bidder) - 1
         self.current_players[idx].partner = self.current_players[idx - 1]
         self.current_players[idx - 1].partner = self.current_players[idx]
 
     def set_include_partners_meld(self, value):
-        assert not value, 'Bid-taker has no partner in Firehouse Pinochle'
+        pass
+
+    def update_current_players(self):
+        self.kitty.reset()
+        super().update_current_players()
 
 
 def test_game(game_type, players):

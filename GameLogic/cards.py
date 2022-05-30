@@ -44,8 +44,16 @@ class Card:
     def random():
         return Card(Card.random_suit(), Card.random_value())
 
+    def to_str(self, color=False, symbol=False):
+        if symbol:
+            card_str = '{}{}'.format(self.value, Card.suit_symbols[self.suit])
+        else:
+            card_str = '{} of {}'.format(self.value, self.suit)
+
+        return colored(card_str, Card.suit_colors[self.suit]) if color else card_str
+
     def __str__(self):
-        return colored('{}{}'.format(self.value, Card.suit_symbols[self.suit]), Card.suit_colors[self.suit])
+        return self.to_str(color=True, symbol=True)
 
     def __repr__(self):
         return Card.__str__(self)
@@ -90,8 +98,11 @@ class PartialDeck:
     def enumerate(self):
         return {idx: card for idx, card in enumerate(self.cards)}
 
+    def to_str(self, color=False, symbol=False):
+        return ', '.join([card.to_str(color, symbol) for card in self.cards])
+
     def __str__(self):
-        return ', '.join([str(card) for card in self.cards])
+        return self.to_str(color=True, symbol=True)
 
     def __len__(self):
         return len(self.cards)
@@ -258,9 +269,12 @@ class Hand(PartialDeck):
         else:
             return PartialDeck.enumerate(self)
 
-    def __str__(self):
-        return ' | '.join([', '.join([str(card) for card in suit]) or 'None'
+    def to_str(self, color=False, symbol=False):
+        return ' | '.join([', '.join([card.to_str(color, symbol) for card in suit]) or 'None'
                            for suit in self.sorted_cards.values()])
+
+    def __str__(self):
+        return self.to_str(color=True, symbol=True)
 
     def __getitem__(self, key):
         if key in Card.suits:

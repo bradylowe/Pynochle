@@ -100,12 +100,15 @@ class Meld:
                 best_suit = suit
         return best_suit
 
-    def __str__(self):
+    def to_str(self, color=False):
         melds = []
         for suit, meld in self.meld_with_trump.items():
             suit_meld = '{} - {}'.format(suit, meld)
-            melds.append(colored(suit_meld, 'yellow') if self.best_ranked_suit == suit else suit_meld)
+            melds.append(colored(suit_meld, 'yellow') if (color and self.best_ranked_suit == suit) else suit_meld)
         return ' | '.join(melds)
+
+    def __str__(self):
+        return self.to_str(color=True)
 
 
 if __name__ == "__main__":

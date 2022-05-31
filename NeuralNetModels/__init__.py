@@ -2,10 +2,10 @@
 
 def num_to_str(num):
     if num >= 1000000000:
-        return f'{int(num // 1000000000)}G'
+        return f'{round(num / 1000000000)}G'
     elif num >= 1000000:
-        return f'{int(num // 1000000)}M'
+        return f'{round(num / 1000000)}M'
     elif num >= 1000:
-        return f'{int(num // 1000)}K'
+        return f'{round(num / 1000)}K'
     else:
         return str(num)

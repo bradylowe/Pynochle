@@ -100,6 +100,7 @@ class Pinochle:
     minimum_bid_increment = 5
     n_players_per_hand = 4
     n_cards_to_pass = 3
+    n_tricks = 12
 
     def __init__(self, players=None, ledger=None, winning_score=None):
         self.players = players or []
@@ -272,6 +273,7 @@ class DoubleDeckPinochle(Pinochle):
     dropped_bid = 50
     minimum_bid = 60
     minimum_bid_increment = 10
+    n_tricks = 20
 
     def __init__(self, players=None, ledger=None, winning_score=None):
         Pinochle.__init__(self, players, ledger, winning_score)
@@ -282,6 +284,7 @@ class FirehousePinochle(DoubleDeckPinochle):
     deck = FirehousePinochleDeck()
     n_players_per_hand = 3
     n_cards_to_pass = 5
+    n_tricks = 25
 
     def __init__(self, players=None, ledger=None, winning_score=None):
         DoubleDeckPinochle.__init__(self, players, ledger, winning_score)
@@ -312,6 +315,7 @@ class FirehousePinochle(DoubleDeckPinochle):
     def pass_cards(self):
         super().pass_cards()
         self.kitty.add_counters(sum([1 for card in self.kitty.hand.cards if PinochleDeck.is_counter(card)]))
+
 
 def test_game(game_type, players):
     the_game = game_type(players)

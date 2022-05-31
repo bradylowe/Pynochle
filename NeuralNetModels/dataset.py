@@ -1,34 +1,43 @@
-import torch
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from time import time
 import os.path as osp
-
+import pandas as pd
 from NeuralNetModels import num_to_str
 
-
-def dataset_paths(n, base_dir, tag=''):
-    num_str = num_to_str(n)
-    base_file = f'{base_dir}/Datasets/dataset_{num_str}'
-
-    if tag:
-        infile, outfile = f'{base_file}_{tag}_input.csv', f'{base_file}_{tag}_output.csv'
-    else:
-        infile, outfile = f'{base_file}_input.csv', f'{base_file}_output.csv'
-
-    return osp.abspath(infile), osp.abspath(outfile)
+from torch.utils.data import Dataset as TorchDataset
 
 
-def load_dataset(n, base_dir, test_size=0.2, random_state=2, tag=''):
-    infile, outfile = dataset_paths(n, base_dir, tag)
-    x = torch.tensor(pd.read_csv(infile).values)
-    y = torch.tensor(pd.read_csv(outfile).values)
-    return train_test_split(x, y, test_size=test_size, random_state=random_state)
+class DatasetBuilder:
+
+    def __init__(self):
+        self.base_dir = osp.dirname(osp.abspath(__file__))
+
+    def build(self, n, path=None, tags=None):
+        pass
+
+    def build_filenames(self, n, path=None, tags=None):
+        if path is None:
+            path = osp.join(self.base_dir, 'Datasets')
+
+        base_name = osp.join(path, f'dataset_{num_to_str(n)}')
+        if tags is not None:
+            tags_str = tags if isinstance(tags, str) else '_'.join(tags)
+            infile, outfile = f'{base_name}_{tags_str}_input.csv', f'{base_name}_{tags_str}_output.csv'
+        else:
+            infile, outfile = f'{base_name}_input.csv', f'{base_name}_output.csv'
+
+        return osp.abspath(infile), osp.abspath(outfile)
 
 
-def test_loading_data(n, base_dir):
-    import code
-    start = time()
-    x, x_test, y, y_test = load_dataset(n, base_dir)
-    print('Loaded dataset of size 1M in {} seconds'.format(round(time() - start, 1)))
-    code.interact(local=locals())
+class Dataset(TorchDataset):
+
+    def __init__(self, filename):
+        super().__init__()
+        self.inputs_file = filename.replace('_output', '_input')
+        self.outputs_file = filename.replace('_input', '_output')
+        self.inputs = pd.read_csv(self.inputs_file).values
+        self.outputs = pd.read_csv(self.outputs_file).values
+
+    def __getitem__(self, index):
+        return self.inputs[index], self.outputs[index]
+
+    def __len__(self):
+        return len(self.inputs)

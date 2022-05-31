@@ -10,7 +10,7 @@ class Trick:
         self.cards = []
         self.card_to_beat = None
         self.trump_played = False
-        self.card_player = {}
+        self.card_players = []
 
     @property
     def leading_card(self):
@@ -25,15 +25,15 @@ class Trick:
         return len(self.cards)
 
     def has_played(self, player):
-        return player in self.card_player.values()
+        return player in self.card_players
 
     def next_play(self, player):
         card = player.play_card(self)
-        self.add_card(card)
-        self.card_player[card] = player
+        self.add_card(card, player)
 
-    def add_card(self, card):
+    def add_card(self, card, player):
         self.cards.append(card)
+        self.card_players.append(player)
 
         if not self.card_to_beat:
             self.card_to_beat = card
@@ -74,12 +74,12 @@ class Trick:
         return sum([1 for card in self.cards if PinochleDeck.is_counter(card)])
 
     def winner(self):
-        for card in self.cards:
+        for card, player in zip(self.cards, self.card_players):
             if card == self.card_to_beat:
-                return self.card_player[card]
+                return player
 
     def have_played(self):
-        return list(self.card_player.values())
+        return self.card_players
 
     def __str__(self):
         return ' | '.join([str(card) for card in self.cards])

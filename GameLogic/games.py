@@ -119,8 +119,6 @@ class Pinochle:
 
         self._printing = False
 
-        self.game_type = type(self)
-
     @property
     def printing(self):
         return self._printing or self.human_player is not None
@@ -226,11 +224,10 @@ class Pinochle:
         if self.printing:
             print('Trump is', self.trump)
 
-        trick_winner = self.current_players[0]
         while self.high_bidder.hand:
 
             if self.printing:
-                print(str(trick_winner), 'is leading')
+                print(str(self.current_players[0]), 'is leading')
 
             trick = Trick(self.trump)
             for player in self.current_players:

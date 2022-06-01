@@ -4,6 +4,7 @@ import pandas as pd
 
 from NeuralNetModels.dataset import DatasetBuilder, Dataset
 from NeuralNetModels.encodings import SuitEncoding, CardEncoding
+from NeuralNetModels.PredictLegalPlays.model import Net
 
 from GameLogic.games import Trick
 from GameLogic.cards import Card, DoublePinochleDeck, Hand
@@ -34,9 +35,13 @@ class LegalPlaysDatasetBuilder(DatasetBuilder):
         self.deck = DoublePinochleDeck()
         CardEncoding.build()
 
-        # Calculate the input/output dimensions
-        self.input_dim = CardEncoding.n * self.deck.n_players + SuitEncoding.n
-        self.output_dim = CardEncoding.n
+        # Set and check input/output neural net dimensions
+        self.input_dim, self.output_dim = Net.input_dim, Net.output_dim
+        indim = CardEncoding.n * 3 + SuitEncoding.n
+        assert self.input_dim == indim, f'Input dimension should be {self.input_dim}, not {indim}'
+
+        outdim = CardEncoding.n
+        assert self.output_dim == CardEncoding.n, f'Output dimension should be {self.output_dim}, not {outdim}'
 
     def build(self, n, path=None, tags=None):
         # Create empty DataFrames of the proper size

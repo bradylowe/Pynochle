@@ -106,7 +106,7 @@ class Pinochle:
         self.players = players or []
         self.ledger = ledger or PinochleLedger()
 
-        self.hand_count = 0
+        self.hand_count = -1
 
         self.trump = None
         self.high_bid = 0

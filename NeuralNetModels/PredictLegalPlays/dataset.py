@@ -7,7 +7,7 @@ from NeuralNetModels.encodings import SuitEncoding, CardEncoding
 from NeuralNetModels.PredictLegalPlays.model import Net
 
 from GameLogic.games import Trick
-from GameLogic.cards import Card, DoublePinochleDeck, Hand
+from GameLogic.cards import DoublePinochleDeck, Hand
 
 
 class LegalPlaysDatasetBuilder(DatasetBuilder):
@@ -94,8 +94,8 @@ class LegalPlaysDatasetBuilder(DatasetBuilder):
 
 class LegalPlaysDataset(Dataset):
 
-    def __init__(self, filename):
-        super().__init__(filename)
+    def __init__(self, filename, batch_size=1):
+        super().__init__(filename, batch_size)
         self.inputs = self.inputs.float()
         self.outputs = self.outputs.float()
 

@@ -29,8 +29,9 @@ class DatasetBuilder:
 
 class Dataset(TorchDataset):
 
-    def __init__(self, filename):
+    def __init__(self, filename, batch_size=1):
         super().__init__()
+        self.batch_size = batch_size
         self.inputs_file = filename.replace('_output', '_input')
         self.outputs_file = filename.replace('_input', '_output')
         self.inputs = pd.read_csv(self.inputs_file).values
@@ -41,3 +42,31 @@ class Dataset(TorchDataset):
 
     def __len__(self):
         return len(self.inputs)
+
+    def __iter__(self):
+        return DatasetIterator(self)
+
+
+class DatasetIterator:
+    """
+    This class allows us to iterate through our dataset in batches.
+    """
+
+    def __init__(self, data):
+        self._batch_size = data.batch_size
+        self._inputs = data.inputs
+        self._outputs = data.outputs
+        self._index = 0
+
+    def __next__(self):
+        length = len(self._inputs)
+        if self._index < length:
+            end = self._index + self._batch_size
+            if end > length:
+                end = length
+            inputs = self._inputs[self._index:end]
+            outputs = self._outputs[self._index:end]
+            self._index = end
+            return inputs, outputs
+        else:
+            raise StopIteration

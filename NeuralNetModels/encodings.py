@@ -58,6 +58,13 @@ class HandEncoding:
             encoding[CardEncoding.idx[card]] = 1
         return encoding
 
+    @staticmethod
+    def counts(hand):
+        counts = [0] * CardEncoding.n
+        for card in hand:
+            counts[CardEncoding.idx[card]] += 1
+        return counts
+
 
 class PlayerEncoding:
 

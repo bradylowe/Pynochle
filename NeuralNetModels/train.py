@@ -1,101 +1,66 @@
-import torch
-import torch.nn as nn
-
-from NeuralNetModels import num_to_str
-from NeuralNetModels.PredictLegalPlays.model import Net
-from NeuralNetModels.dataset import load_dataset
-
-import os.path as osp
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 plt.style.use('ggplot')
 
 
 def get_accuracy(pred_arr, original_arr):
-    final_pred = pred_arr.detach().numpy() > 0.5
+    final_pred = np.argmax(pred_arr.detach().numpy(), axis=1)
     original_arr = original_arr.numpy()
 
-    correct = (final_pred == original_arr).all(axis=1).sum()
-    return correct / len(final_pred) * 100
+    correct = np.equal(final_pred, original_arr)
+    return correct.sum() / len(correct) * 100
 
 
-def train(model, optimizer, criterion, x_train, y_train, x_test, y_test, n_epochs):
+def train(model, optimizer, criterion, scheduler, train_dataset, test_dataset, n_epochs):
     train_loss = []
     train_accuracy = []
     test_accuracy = []
 
+    test_iterator = test_dataset.__iter__()
+
     for epoch in range(n_epochs):
 
-        output_train = model(x_train)
+        for x, y in train_dataset:
+            output_train = model(x)
+            loss = criterion(output_train, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        train_accuracy.append(get_accuracy(output_train, y_train))
-
-        # calculate the loss
-        loss = criterion(output_train, y_train)
+        # Sample the current model performance at every epoch
+        train_accuracy.append(get_accuracy(output_train, y))
         train_loss.append(loss.item())
-
-        # clear out the gradients from the last step loss.backward()
-        optimizer.zero_grad()
-
-        # backward propagation: calculate gradients
-        loss.backward()
-
-        # update the weights
-        optimizer.step()
-
         with torch.no_grad():
+            x_test, y_test = next(test_iterator)
             output_test = model(x_test)
             test_accuracy.append(get_accuracy(output_test, y_test))
 
-        if (epoch + 1) % 5 == 0:
+        # Print model performance to user sometimes
+        if epoch < 5 or (epoch + 1) % 5 == 0:
             print(f"Epoch {epoch + 1}/{n_epochs}, "
                   f"Train Loss: {loss.item():.4f}, "
                   f"Train Accuracy: {sum(train_accuracy) / len(train_accuracy):.2f}, "
                   f"Test Accuracy: {sum(test_accuracy) / len(test_accuracy):.2f}")
+        scheduler.step()
 
     return train_loss, train_accuracy, test_accuracy
 
 
-def run_training(base_dir, n_data, tag='',
-                 model=None, model_out=None,
-                 n_epochs=100, learning_rate=0.01, hidden_dim=256):
-
-    model = Net(hidden_dim)
-    x_train, x_test, y_train, y_test = load_dataset(n_data, base_dir, tag=tag)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    # Train for half the epochs with Mean-Squared Error loss function
-    criterion = nn.MSELoss()
-    print('\nTraining with', criterion)
-    train_loss_1, train_accuracy_1, test_accuracy_1 = train(model, optimizer, criterion,
-                                                            x_train.float(), y_train.float(),
-                                                            x_test.float(), y_test.float(),
-                                                            n_epochs//2)
-
-    # Train for half the epochs with L1 loss function
-    criterion = nn.L1Loss()
-    print('\nTraining with', criterion)
-    train_loss_2, train_accuracy_2, test_accuracy_2 = train(model, optimizer, criterion,
-                                                            x_train.float(), y_train.float(),
-                                                            x_test.float(), y_test.float(),
-                                                            n_epochs//2)
+def plot_training_results(train_accuracy, train_loss, test_accuracy, plot_file=None):
 
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(12, 6), sharex=True)
 
-    ax1.plot(train_accuracy_1 + train_accuracy_2)
+    ax1.plot(train_accuracy)
     ax1.set_ylabel("training accuracy")
-
-    ax2.plot(train_loss_1 + train_loss_2)
+    ax2.plot(train_loss)
     ax2.set_ylabel("training loss")
-
-    ax3.plot(test_accuracy_1 + test_accuracy_2)
+    ax3.plot(test_accuracy)
+    ax3.set_xlabel("epochs")
     ax3.set_ylabel("test accuracy")
 
-    ax3.set_xlabel("epochs")
-
-    outfile = f'train_{num_to_str(n_data)}examples_{num_to_str(n_epochs)}epochs.png'
-    outfile = osp.join(base_dir, 'Plots', outfile)
-    if tag:
-        outfile = outfile.replace('.png', '_{}.png'.format(tag))
-
-    fig.savefig(outfile)
+    if plot_file:
+        fig.savefig(plot_file)
+    else:
+        fig.show()
+        input('Press enter...')

@@ -31,7 +31,7 @@ class CardEncoding:
         """Create one-hot encodings for cards and mappings to/from these encodings"""
 
         # Set the possible values, generate a hand with one of each possible card
-        CardEncoding.unique = Hand(Card.unique_cards())
+        CardEncoding.unique = Hand(Card.one_of_each())
         CardEncoding.n = len(CardEncoding.unique)
 
         # Build a dictionary for getting the corresponding card from a given index position

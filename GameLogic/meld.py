@@ -1,4 +1,4 @@
-from GameLogic.cards import Card, PinochleDeck
+from GameLogic.cards import Card
 from termcolor import colored
 
 import os
@@ -10,37 +10,47 @@ class Meld:
     marriage = ['Q', 'K']
     family = ['J', 'Q', 'K', '10', 'A']
 
+    # Todo: Move these values to GAME SETTINGS
     nine_of_trump_worth = 1
     card_around_meld_worth = {'J': 4, 'Q': 6, 'K': 8, 'A': 10}
     family_meld_worth = {0: 0, 1: 11, 2: 110, 3: 1100, 4: 11000}
     pinochle_meld_worth = {0: 0, 1: 4, 2: 30, 3: 90, 4: 1000}
     marriage_meld_worth = 2
 
-    def __init__(self, hand):
+    def __init__(self, hand, trump=None):
         self.hand = hand
         self.counts = self.count_cards()
         self.min_counts = self.calculate_min_counts()
-        self.counters = {suit: sum([self.counts[suit][value] for value in PinochleDeck.counters])
-                         for suit in Card.suits}
+
+        # Set the total meld once trump is called
+        self.trump = None
+        self.final = None
 
         # Meld that does not depend on trump
-        self.nines_meld = {suit: Meld.nine_of_trump_worth * len(self.counts[suit]['9']) if '9' in Card.values else 0
-                           for suit in Card.suits}
-        self.marriage_melds = {suit: Meld.marriage_meld_worth * self.count_marriages(suit)
-                               for suit in Card.suits}
+        self.marriage_melds = {suit: self.calculate_marriage_meld(suit) for suit in Card.suits}
         self.pinochle_meld = self.calculate_pinochle_meld()
         self.cards_around_meld = self.calculate_meld_for_aces_kings_queens_jacks()
-        self.meld = self.calculate_meld_without_trump()
+        self.meld_without_trump = self.calculate_meld_without_trump()
 
-        # Meld that DOES depend on trump
-        self.meld_with_trump = {suit: self.calculate_meld_with_trump(suit) for suit in Card.suits}
+        # Meld that depends on trump
+        self.family_melds = {suit: self.calculate_family_meld(suit) for suit in Card.suits}
+        self.nines_meld = {suit: self.calculate_nines_meld(suit) for suit in Card.suits}
+        self.total_meld_given_trump = {suit: self.calculate_meld_with_trump(suit) for suit in Card.suits}
 
         self.power = {suit: self.calculate_suit_power(suit) for suit in Card.suits}
         self.rank = {suit: self.calculate_suit_rank(suit) for suit in Card.suits}
 
         self.best_ranked_suit = self.calculate_best_ranked_suit()
-        self.meld_of_best_suit = self.meld_with_trump[self.best_ranked_suit] if self.best_ranked_suit else 0
-        self.counters_of_best_suit = self.counters[self.best_ranked_suit] if self.best_ranked_suit else 0
+        self.meld_of_best_suit = self.total_meld_given_trump[self.best_ranked_suit] if self.best_ranked_suit else 0
+
+        # Set trump if it was given
+        if trump is not None:
+            self.set_trump(trump)
+
+    def set_trump(self, trump):
+        """Set the value of the final meld once trump is called"""
+        self.trump = trump
+        self.final = self.total_meld_given_trump[trump]
 
     def count_cards(self):
         """Count the number of cards in a 2D dictionary sorted by suit and then card value"""
@@ -60,6 +70,9 @@ class Meld:
     def count_marriages(self, suit):
         return min([self.counts[suit][value] for value in Meld.marriage])
 
+    def count_families(self, suit):
+        return min([self.counts[suit][value] for value in Meld.family])
+
     def calculate_pinochle_meld(self):
         pinochle_count = min([self.counts['Spades']['Q'], self.counts['Diamonds']['J']])
         return Meld.pinochle_meld_worth[pinochle_count]
@@ -73,22 +86,30 @@ class Meld:
                     meld += Meld.card_around_meld_worth[card_value] * 10 ** (count - 1)
         return meld
 
+    def calculate_nines_meld(self, suit):
+        if '9' not in Card.values:
+            return 0
+        return Meld.nine_of_trump_worth * self.counts[suit]['9']
+
+    def calculate_marriage_meld(self, suit):
+        return Meld.marriage_meld_worth * self.count_marriages(suit)
+
     def calculate_family_meld(self, suit):
-        family_count = min([self.counts[suit][value] for value in Meld.family])
-        return Meld.family_meld_worth[family_count]
+        return Meld.family_meld_worth[self.count_families(suit)]
 
     def calculate_meld_without_trump(self):
         return sum(self.marriage_melds.values()) + self.pinochle_meld + self.cards_around_meld
 
     def calculate_meld_with_trump(self, suit):
-        return self.meld + self.marriage_melds[suit] + self.calculate_family_meld(suit) + self.nines_meld[suit]
+        additional_trump_meld = self.marriage_melds[suit] + self.family_melds[suit] + self.nines_meld[suit]
+        return self.meld_without_trump + additional_trump_meld
 
     def calculate_suit_power(self, suit):
         return sum([idx * idx * self.counts[suit][Card.values[idx]] for idx in range(len(Card.values))])
 
     def calculate_suit_rank(self, suit):
         if self.marriage_melds[suit] > 0:
-            return self.meld_with_trump[suit] * 5 + self.power[suit]
+            return self.total_meld_given_trump[suit] * 5 + self.power[suit]
         else:
             return 0
 
@@ -102,7 +123,7 @@ class Meld:
 
     def to_str(self, color=False):
         melds = []
-        for suit, meld in self.meld_with_trump.items():
+        for suit, meld in self.total_meld_given_trump.items():
             suit_meld = '{} - {}'.format(suit, meld)
             melds.append(colored(suit_meld, 'yellow') if (color and self.best_ranked_suit == suit) else suit_meld)
         return ' | '.join(melds)
@@ -127,5 +148,13 @@ if __name__ == "__main__":
     print(' ')
     print('Power: ', meld.power)
     print('Ranks: ', meld.rank)
-    print('Melds: ', meld.meld_with_trump)
+    print('Melds: ', meld.total_meld_given_trump)
     print('Best:  ', '{} - {}'.format(meld.best_ranked_suit, meld.meld_of_best_suit))
+    print()
+    print('Nines meld: ', meld.nines_meld)
+    print('Family melds: ', meld.family_melds)
+    print('Marriage melds: ', meld.marriage_melds)
+    print('Pinochle meld: ', meld.pinochle_meld)
+    print('Cards around melds: ', meld.cards_around_meld)
+    print('---')
+    print('Meld without trump: ', meld.meld_without_trump)

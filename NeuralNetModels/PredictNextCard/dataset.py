@@ -8,7 +8,7 @@ from NeuralNetModels.encodings import SuitEncoding, CardEncoding, PlayerEncoding
 from NeuralNetModels.PredictNextCard.model import PredictNextCard
 
 from GameLogic.games import FirehousePinochle, Trick
-from GameLogic.players import AutoPinochlePlayer
+from GameLogic.players import SimplePinochlePlayer
 
 
 class NextCardDatasetBuilder(DatasetBuilder):
@@ -39,7 +39,7 @@ class NextCardDatasetBuilder(DatasetBuilder):
         super().__init__()
         self.base_dir = osp.dirname(osp.abspath(__file__))
 
-        self.game = FirehousePinochle([AutoPinochlePlayer(name) for name in ['A', 'B', 'C']])
+        self.game = FirehousePinochle([SimplePinochlePlayer(name) for name in ['A', 'B', 'C']])
         PlayerEncoding.build(self.game.players)
         CardEncoding.build()
 
@@ -70,7 +70,7 @@ class NextCardDatasetBuilder(DatasetBuilder):
             self.game.set_lead_player(self.game.high_bidder)
             self.game.set_partners()
 
-            self.game.trump = self.game.high_bidder.call_trump()
+            self.game.trump = self.game.high_bidder.choose_trump()
             self.game.pass_cards()
 
             # Play the hand

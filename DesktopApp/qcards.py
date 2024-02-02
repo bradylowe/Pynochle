@@ -31,7 +31,7 @@ class QtPlayingCard(Card):
     def build_pixmaps():
         QtPlayingCard.card_back_pixmap = QPixmap(osp.join(icons_path, QtPlayingCard.card_back_name), 'png')
         QtPlayingCard.card_front_pixmap = {hash(card): QPixmap(osp.join(icons_path, card.suit + card.value), 'png')
-                                           for card in Card.unique_cards()}
+                                           for card in Card.one_of_each()}
 
     @property
     def pixmap(self):

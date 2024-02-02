@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os.path as osp
+import sys
 
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets

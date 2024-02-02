@@ -1,3 +1,4 @@
+from typing import Iterable
 import copy
 import numpy as np
 from itertools import product
@@ -9,7 +10,8 @@ os.system('color')
 
 class Card:
 
-    values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    values = ['9', '10', 'J', 'Q', 'K', 'A']
+    counter_values = {'K', '10', 'A'}
     suits = ['Spades', 'Hearts', 'Clubs', 'Diamonds']
     suit_symbols = {'Spades': '♠', 'Hearts': '♥', 'Clubs': '♣', 'Diamonds': '♦'}
 
@@ -23,8 +25,12 @@ class Card:
         self.suit = suit
         self.value = value
 
+    @property
+    def is_counter(self):
+        return self.value in self.counter_values
+
     @staticmethod
-    def unique_cards():
+    def one_of_each():
         return [Card(suit, value) for suit, value in product(Card.suits, Card.values)]
 
     @staticmethod
@@ -44,6 +50,9 @@ class Card:
     def random():
         return Card(Card.random_suit(), Card.random_value())
 
+    def get_state(self):
+        return {'suit': self.suit, 'value': self.value}
+
     def to_str(self, color=False, symbol=False):
         if symbol:
             card_str = '{}{}'.format(self.value, Card.suit_symbols[self.suit])
@@ -52,11 +61,14 @@ class Card:
 
         return colored(card_str, Card.suit_colors[self.suit]) if color else card_str
 
+    def copy(self):
+        return Card(self.suit, self.value)
+
     def __str__(self):
         return self.to_str(color=True, symbol=True)
 
     def __repr__(self):
-        return Card.__str__(self)
+        return f'{self.__class__.__name__}("{self.suit}", "{self.value}")'
 
     def __lt__(self, other):
         return Card.values.index(self.value) < Card.values.index(other.value)
@@ -76,6 +88,15 @@ class PartialDeck:
     def __init__(self, cards):
         self.cards = cards
 
+    def add_card(self, card: Card):
+        self.cards.append(card)
+
+    def add_cards(self, cards: Iterable[Card]):
+        self.cards.extend(list(cards))
+
+    def discard(self, card: Card):
+        self.cards.remove(card)
+
     def shuffle(self):
         np.random.shuffle(self.cards)
 
@@ -92,14 +113,18 @@ class PartialDeck:
         return False
 
     def choose_random_card(self):
-        assert len(self.cards), 'Cannot choose a random card, no cards in the deck'
+        if len(self.cards) == 0:
+            raise AttributeError('Cannot choose a random card, no cards in the deck')
         return np.random.choice(self.cards)
-
-    def enumerate(self):
-        return {idx: card for idx, card in enumerate(self.cards)}
 
     def to_str(self, color=False, symbol=False):
         return ', '.join([card.to_str(color, symbol) for card in self.cards])
+
+    def get_state(self):
+        return {
+            'deck_type': self.__class__.__name__,
+            'cards': [card.get_state() for card in self.cards],
+        }
 
     def __str__(self):
         return self.to_str(color=True, symbol=True)
@@ -108,28 +133,10 @@ class PartialDeck:
         return len(self.cards)
 
     def __iter__(self):
-        return DeckIterator(self)
+        return iter(self.cards)
 
     def __getitem__(self, key):
         return self.cards[key]
-
-
-class DeckIterator:
-    """
-    This class allows us to iterate through our cards.
-    """
-
-    def __init__(self, deck):
-        self._deck = deck
-        self._index = 0
-
-    def __next__(self):
-        if self._index < len(self._deck):
-            card = self._deck.cards[self._index]
-            self._index += 1
-            return card
-        else:
-            raise StopIteration
 
 
 class Deck(PartialDeck):
@@ -138,6 +145,12 @@ class Deck(PartialDeck):
 
     def __init__(self):
         super().__init__(self.build_deck())
+
+    def get_state(self):
+        return {
+            **super().get_state(),
+            'values': self.values,
+        }
 
     def build_deck(self):
         return [Card(s, v) for s, v in product(Card.suits, Card.values)]
@@ -150,13 +163,16 @@ class PinochleDeck(Deck):
 
     n_players = 4
     values = ['9', 'J', 'Q', 'K', '10', 'A']
-    counters = ['K', '10', 'A']
-    is_counter_dict = {}
 
     def __init__(self):
         Card.values = self.values
         super().__init__()
-        PinochleDeck.is_counter_dict = {key: key in PinochleDeck.counters for key in PinochleDeck.values}
+
+    def get_state(self):
+        return {
+            **super().get_state(),
+            'n_players': self.n_players,
+        }
 
     def build_deck(self):
         Card.values = self.values
@@ -166,16 +182,12 @@ class PinochleDeck(Deck):
         return self.cards[0:12], self.cards[12:24], self.cards[24:36], self.cards[36:48]
 
     @staticmethod
-    def is_counter(card):
-        return PinochleDeck.is_counter_dict[card.value]
-
-    @staticmethod
     def get_counters(cards):
-        return sorted([card for card in cards if PinochleDeck.is_counter(card)], reverse=True)
+        return [card for card in cards if card.is_counter]
 
     @staticmethod
     def get_non_counters(cards):
-        return sorted([card for card in cards if not PinochleDeck.is_counter(card)], reverse=True)
+        return [card for card in cards if not card.is_counter]
 
 
 class DoublePinochleDeck(PinochleDeck):
@@ -189,7 +201,9 @@ class DoublePinochleDeck(PinochleDeck):
         return 2 * PinochleDeck.build_deck(self)
 
     def deal(self):
-        return self.cards[0:20], self.cards[20:40], self.cards[40:60], self.cards[60:80]
+        h1, h2, h3, h4 = self.cards[0:20], self.cards[20:40], self.cards[40:60], self.cards[60:80]
+        self.cards = []
+        return h1, h2, h3, h4
 
 
 class FirehousePinochleDeck(DoublePinochleDeck):
@@ -200,14 +214,16 @@ class FirehousePinochleDeck(DoublePinochleDeck):
         super().__init__()
 
     def deal(self):
-        return self.cards[0:25], self.cards[25:50], self.cards[50:75], self.cards[75:80]
+        h1, h2, h3, kitty = self.cards[0:25], self.cards[25:50], self.cards[50:75], self.cards[75:80]
+        self.cards = []
+        return h1, h2, h3, kitty
 
 
 class Hand(PartialDeck):
 
     def __init__(self, cards=None):
         super().__init__(cards or [])
-        self.sorted_cards = {}
+        self.sorted_by_suit = {}
         self.sort()
 
     def set(self, cards):
@@ -215,70 +231,75 @@ class Hand(PartialDeck):
         self.sort()
 
     def play(self, card):
-        for this_card in self.sorted_cards[card.suit]:
+        for this_card in self.sorted_by_suit[card.suit]:
             if this_card == card:
                 self.cards.remove(this_card)
-                self.sorted_cards[card.suit].remove(this_card)
+                self.sorted_by_suit[card.suit].remove(this_card)
                 return card
         raise ValueError('Cannot play {}, it is not in the hand'.format(str(card)))
 
-    def add(self, cards):
-        if hasattr(cards, '__iter__'):
-            self.cards.extend(cards)
-        else:
-            self.cards.append(cards)
+    def add_card(self, card: Card):
+        super().add_card(card)
         self.sort()
 
-    def sorted_by_suit(self):
-        sorted_by_suit = {key: [] for key in Card.suits}
-        for card in self.cards:
-            sorted_by_suit[card.suit].append(card)
-        return sorted_by_suit
+    def add_cards(self, cards: Iterable[Card]):
+        super().add_cards(cards)
+        self.sort()
 
     def sort(self):
-        self.sorted_cards = {suit: sorted(cards, reverse=True) for suit, cards in self.sorted_by_suit().items()}
+        self.sorted_by_suit = {key: [] for key in Card.suits}
+        for card in self.cards:
+            self.sorted_by_suit[card.suit].append(card)
+        for cards in self.sorted_by_suit.values():
+            cards.sort(reverse=True)
 
     def has_suit(self, suit):
-        return len(self.sorted_cards[suit]) > 0
+        return len(self.sorted_by_suit[suit]) > 0
 
     def choose_random_card(self, suit=None):
-        assert len(self.cards), 'Cannot choose a random card, no cards in the hand'
+        if len(self.cards) == 0:
+            raise AttributeError('Cannot choose a random card, no cards in the hand')
         if suit is None:
-            return PartialDeck.choose_random_card(self)
+            return np.random.choice(self.cards)
         elif self.has_suit(suit):
-            return np.random.choice(self.sorted_cards[suit])
+            return np.random.choice(self.sorted_by_suit[suit])
         else:
             raise IndexError('Hand does not contain suit {}'.format(suit))
 
     def choose_random_suit(self):
-        assert len(self.cards), 'Cannot choose a random suit, no cards in the hand'
+        if len(self.cards) == 0:
+            raise AttributeError('Cannot choose a random card, no cards in the hand')
         suit = Card.random_suit()
         while not self.has_suit(suit):
             suit = Card.random_suit()
         return suit
 
-    def enumerate(self, sorted=True):
-        if sorted:
-            enumerated = {idx: None for idx in range(len(self))}
-            idx = 0
-            for suit in self.sorted_cards:
-                for card in self.sorted_cards[suit]:
-                    enumerated[idx] = card
-                    idx += 1
-            return enumerated
-        else:
-            return PartialDeck.enumerate(self)
+    def enumerate(self):
+        enumerated = {idx: None for idx in range(len(self))}
+        idx = 0
+        for suit in self.sorted_by_suit:
+            for card in self.sorted_by_suit[suit]:
+                enumerated[idx] = card
+                idx += 1
+        return enumerated
 
     def to_str(self, color=False, symbol=False):
         return ' | '.join([', '.join([card.to_str(color, symbol) for card in suit]) or 'None'
-                           for suit in self.sorted_cards.values()])
+                           for suit in self.sorted_by_suit.values()])
+
+    def copy(self):
+        return Hand([card.copy() for card in self.cards])
+
+    @staticmethod
+    def one_of_each():
+        return Hand(Card.one_of_each())
 
     def __str__(self):
         return self.to_str(color=True, symbol=True)
 
     def __getitem__(self, key):
         if key in Card.suits:
-            return self.sorted_cards[key]
+            return self.sorted_by_suit[key]
         else:
             return super().__getitem__(key)
 

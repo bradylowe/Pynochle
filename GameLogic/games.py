@@ -2,7 +2,13 @@ import sys
 import os
 sys.path.append(os.path.abspath('./'))
 
-from typing import Iterable, Optional
+here = os.path.dirname(os.path.abspath(__file__))
+base_path = os.path.dirname(here)
+
+from typing import Optional, List
+from uuid import uuid4
+import json
+from datetime import datetime
 
 from GameLogic.cards import (
     Card,
@@ -21,53 +27,449 @@ from GameLogic.players import (
 from GameLogic.tricks import Trick
 
 
-'''
-class SharedKnowledge:
+class Pinochle:
 
-    def __init__(self, players):
+    # Settings
+    last_trick_value = 1
+    deck_type = PinochleDeck
+    dropped_bid_amt = 25
+    minimum_bid_amt = 30
+    bid_increment_amt = 5
+    n_players = 4
+    n_cards_to_pass = 3
+    winning_score = 350
+    partner_gets_points = False
 
-        self._players = players
-        self.scores = {p.id: p.score for p in self._players}
-        for player in self._players:
-            player.shared_knowledge = self
-        
-        self.hand_count = 0
+    def __init__(self, players=None, printing=False, logging=False):
 
+        # Operational parameters
+        self.game_id = str(uuid4())
+        self._printing = printing
+        self._logging = logging
+
+        # Game information
+        self.deck = self.deck_type()
+        self.players = []
+        self.set_players(players)
+        self.human_player = self.find_human_player()
+        self.hand_count = -1
+        self.scores = {p.id: p.score for p in self.players}
+        self._state_log = []
+
+        # Hand information
+        self.current_players = []
+        self.cards_played = []
+
+        # Bid information
         self.trump = None
         self.high_bid = None
         self.high_bidder = None
         self.current_bid = None
+        self.dropped_bid = None
+        self.saved_bid = None
 
+        # Trick information
         self.trick = None
         self.best_card_in_trick = None
         self.trick_winner = None
-        
-        self.player_order = []
-        self.tricks_taken = {p: [] for p in self._players}
-        self.has_card = {p: {suit: {value: True for value in Card.values} for suit in Card.suits} for p in self._players}
+        self.tricks_played = []
+        self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
 
-    def new_hand(self):
+        # Per-player hand information
+        self.bids = {p: None for p in self.players}
+        self.melds = {p: None for p in self.players}
+        self.meld_cards = {p: [] for p in self.players}
+        self.tricks_taken = {p: [] for p in self.players}
+        self.has_suit = {p: {suit: True for suit in Card.suits} for p in self.players}
+        self.has_card = {p: {suit: {val: True for val in Card.values} for suit in Card.suits} for p in self.players}
+
+        # Log initial state
+        self.log_state('INITIALIZE GAME')
+
+    @property
+    def printing(self):
+        return self._printing or self.human_player is not None
+
+    @printing.setter
+    def printing(self, value):
+        self._printing = value
+
+    def print(self, *args):
+        if self.printing:
+            print(*args)
+
+    def play_game(self):
+        self.log_state('START GAME', save_state=False)
+        while not any([p.score > self.winning_score for p in self.players]):
+            self.play_hand()
+        self.log_state('END GAME', save_state=False)
+
+    def set_players(self, players: List[PinochlePlayer]):
+        self.players = players
+        for idx, player in enumerate(self.players):
+            player.index = idx
+
+    def reset_hand_state(self):
+
+        # Hand information
+        self.current_players = []
+        self.cards_played = []
+
+        # Bid information
         self.trump = None
         self.high_bid = None
         self.high_bidder = None
         self.current_bid = None
-        self.player_order = []
+        self.dropped_bid = None
+        self.saved_bid = None
 
+        # Trick information
         self.trick = None
         self.best_card_in_trick = None
         self.trick_winner = None
-        
-        self.tricks_taken = {p: [] for p in self._players}
-        self.has_suit = {p: {suit: True for suit in Card.suits} for p in self._players}
-        self.has_card = {p: {suit: {value: True for value in Card.values} for suit in Card.suits} for p in self._players}
-    
-    def player_cannot_beat(player: PinochlePlayer, card: Card):
+        self.tricks_played = []
+        self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
+
+        # Per-player hand information
+        self.bids = {p: None for p in self.players}
+        self.melds = {p: None for p in self.players}
+        self.meld_cards = {p: [] for p in self.players}
+        self.tricks_taken = {p: [] for p in self.players}
+        self.has_suit = {p: {suit: True for suit in Card.suits} for p in self.players}
+        self.has_card = {p: {suit: {val: True for val in Card.values} for suit in Card.suits} for p in self.players}
+
+    def get_settings_state(self):
+        return {
+            'last_trick_value': self.last_trick_value,
+            'deck_type': self.deck_type.__name__,
+            'dropped_bid_amt': self.dropped_bid_amt,
+            'minimum_bid_amt': self.minimum_bid_amt,
+            'bid_increment_amt': self.bid_increment_amt,
+            'n_players': self.n_players,
+            'n_cards_to_pass': self.n_cards_to_pass,
+            'winning_score': self.winning_score,
+            'partner_gets_points': False,
+        }
+
+    def get_state(self):
+        return {
+            **self.get_settings_state(),
+
+            'game_id': self.game_id,
+            #'deck': self.deck.get_state(),
+            'players': [p.get_state() for p in self.players],
+            'human_player': None if self.human_player is None else self.human_player.index,
+            'hand_count': self.hand_count,
+            'scores': self.scores,
+
+            'current_players': [p.index for p in self.current_players],
+            'cards_played': [(c.get_state(), p.index) for c, p in self.cards_played],
+
+            'trump': self.trump,
+            'high_bid': self.high_bid,
+            'high_bidder': None if self.high_bidder is None else self.high_bidder.index,
+            'current_bid': self.current_bid,
+            'dropped_bid': self.dropped_bid,
+            'saved_bid': self.saved_bid,
+
+            'trick': None if self.trick is None else self.trick.get_state(),
+            #'best_card_in_trick': self.best_card_in_trick.get_state(),
+            'trick_winner': None if self.trick_winner is None else self.trick_winner.index,
+            'tricks_played': [t.get_state() for t in self.tricks_played],
+            'remaining_cards': self.remaining_cards,
+
+            'bids': {p.index: self.bids[p] for p in self.players},
+            'melds': {p.index: self.melds[p] for p in self.players},
+            'meld_cards': {p.index: [c.get_state() for c in self.meld_cards[p]] for p in self.players},
+            'tricks_taken': {p.index: [t.get_state() for t in self.tricks_taken[p]] for p in self.players},
+            'has_suit': {p.index: self.has_suit[p] for p in self.players},
+            'has_card': {p.index: self.has_card[p] for p in self.players},
+        }
+
+    def get_shared_state(self):
+        state = self.get_state()
+        state['players'] = [p.get_shared_state() for p in self.players]
+        return state
+
+    def log_state(self, action: str, save_state: bool = True):
+        if self._logging:
+            self._state_log.append(f'<<<{action}>>>')
+            if save_state:
+                self._state_log.append(self.get_state())
+
+    def write_log_to_file(self, filename: str = None, path: str = None):
+        now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        if filename is None:
+            filename = f'state_log_{now}.json'
+
+        if path is not None:
+            filename = os.path.abspath(os.path.join(base_path, path, filename))
+
+        with open(filename, 'w') as f:
+            data = {
+                'state_log': self._state_log,
+                'timestamp': now,
+            }
+            json.dump(data, f)
+            print(f'Wrote hand to {filename}')
+
+    def play_to(self, winning_score):
+        self.winning_score = winning_score
+
+    def set_include_partners_meld(self, value):
+        self.partner_gets_points = value
+
+    def deal(self):
+        hands = self.deck.deal()
+        self.current_players[0].take_cards(hands[0])
+        self.current_players[1].take_cards(hands[1])
+        self.current_players[2].take_cards(hands[2])
+        self.current_players[3].take_cards(hands[3])
+
+    def find_human_player(self):
+        for player in self.players:
+            if isinstance(player, HumanPinochlePlayer):
+                return player
+
+    def show_human_hand_and_meld(self):
+        if self.human_player and self.human_player in self.current_players:
+            msg = f'\n' \
+                  f'Your hand\n' \
+                  f'{self.human_player.hand}\n' \
+                  f'Meld: {self.human_player.meld}'
+            self.print(msg)
+
+    def take_cards(self):
+        from_partner = self.high_bidder.partner.discard(self.n_cards_to_pass)
+        self.high_bidder.take_cards(from_partner)
+        if self.high_bidder is self.human_player:
+            self.print('New meld: ', self.high_bidder.meld)
+        self.log_state('TAKE CARDS')
+
+    def give_cards(self):
+        to_partner = self.high_bidder.discard(self.n_cards_to_pass)
+        self.high_bidder.partner.take_cards(to_partner)
+        self.log_state('GIVE CARDS')
+
+    def pass_cards(self):
+        self.take_cards()
+        self.give_cards()
+
+    def declare_meld(self):
+        for player in self.current_players:
+            player.meld.set_trump(self.trump)
+            self.melds[player] = player.meld.final
+
+        self.log_state('DECLARE MELD')
+
+    def update_current_players(self):
+        """
+        Locates the current players out of the player pool and
+        rotates player order each hand so the bid order changes.
+        """
+        # Find and order current players
+        n, N = self.n_players, len(self.players)
+        self.current_players = [self.players[i % N] for i in range(self.hand_count, self.hand_count + n)]
+        for player in self.current_players:
+            player.reset_hand_state()
+
+    def bidding_process(self):
+        # If no one bids, then the bid gets dropped on the last bidder
+        start_bid_amt = self.minimum_bid_amt - self.bid_increment_amt
+        self.high_bid = start_bid_amt
+        self.high_bidder = self.current_players[-1]
+        passed = {player: False for player in self.current_players}
+
+        # Everyone keeps bidding until everyone passes except one person
+        idx = 0
+        n_players = len(self.current_players)
+        while sum(passed.values()) < n_players - 1:
+            player = self.current_players[idx]
+            if not passed[player]:
+                self.player_bids(player, passed)
+
+            idx = (idx + 1) % n_players
+
+        # Check to see if the bid was dropped
+        if self.high_bid == start_bid_amt:
+            self.high_bid = self.dropped_bid_amt
+            self.dropped_bid = True
+            self.log_state('BID DROPPED')
+            self.print(f'The bid was dropped on {self.high_bidder}')
+
+        self.print(self.high_bidder, 'took the bid at', self.high_bid)
+
+    def player_bids(self, player: PinochlePlayer, player_has_passed: dict):
+
+        def bid_too_small(bid):
+            return bid <= self.high_bid
+
+        def bid_not_increment(bid):
+            return bid % self.bid_increment_amt == 0
+
+        this_bid = player.place_bid(self.high_bid, self.bid_increment_amt)
+        if isinstance(player, HumanPinochlePlayer) and this_bid is not None:
+            while bid_too_small(this_bid) or bid_not_increment(this_bid):
+                if bid_too_small(this_bid):
+                    print('Bid is too small')
+                elif bid_not_increment(this_bid):
+                    print('Bid is not a valid increment')
+                this_bid = player.place_bid(self.high_bid, self.bid_increment_amt)
+
+        if this_bid:
+            self.high_bid = this_bid
+            self.high_bidder = player
+            self.log_state(f'PLAYER {player.index} BID {this_bid}')
+        else:
+            player_has_passed[player] = True
+            self.log_state(f'PLAYER {player.index} PASSED')
+
+    def initialize_new_hand(self):
+        self.reset_hand_state()
+        self.hand_count += 1
+        self.update_current_players()
+        self.deck.shuffle()
+        self.deal()
+
+        self.print('\nBeginning hand #{}'.format(self.hand_count))
+        self.show_human_hand_and_meld()
+        self.log_state('NEW HAND INITIALIZED')
+
+    def set_lead_player(self):
+        leader = self.trick_winner or self.high_bidder
+        lead_idx = self.current_players.index(leader)
+        n = len(self.current_players)
+        self.current_players = [self.current_players[(lead_idx + i) % n] for i in range(n)]
+        leader.is_high_bidder = True
+
+        self.print(str(self.current_players[0]), 'is leading')
+        self.log_state(f'PLAYER {leader.index} IS LEADING', save_state=False)
+
+    def set_partners(self):
+        self.current_players[0].partner = self.current_players[2]
+        self.current_players[2].partner = self.current_players[0]
+        self.current_players[1].partner = self.current_players[3]
+        self.current_players[3].partner = self.current_players[1]
+        self.log_state('SET PARTNERS')
+
+    def set_position(self):
+        lead_idx = self.high_bidder.index
+        n_players = len(self.current_players)
+        positions = {
+            lead_idx: 'high_bidder',
+            ((lead_idx + 1) % n_players): 'left',
+            ((lead_idx + 2) % n_players): 'forward',
+            ((lead_idx + 3) % n_players): 'right',
+        }
+        for idx in range(lead_idx, lead_idx + n_players):
+            cur_idx = idx % n_players
+            self.current_players[cur_idx].position = positions[cur_idx]
+
+        self.log_state('SET POSITION')
+
+    def call_trump(self):
+        self.trump = self.high_bidder.choose_trump()
+        self.print(f'Trump is {self.trump}')
+        self.log_state('CALL TRUMP')
+
+    def play_next_card(self, player: PinochlePlayer):
+
+        msg = f'High bidder: {self.high_bidder}\n' \
+              f'Trump: {self.trump}'
+        #self.print(msg)
+
+        card = player.play_card(self.trick)
+        self.trick.add_card(card, player)
+
+        self.cards_played.append((card, player))
+        # Todo: update the shared state variables pertaining to cards
+
+        self.log_state(f'PLAYER {player.index} PLAYS {card.to_str()}')
+
+    def update_scores(self):
+
+        # Give "last trick" points to the winner of the last trick
+        self.trick_winner.took_last_trick = True
+
+        # Count points of the high bidder and their partner
+        bidder_counters = self.high_bidder.counters(self.last_trick_value)
+        partner_counters = self.high_bidder.partner.counters(self.last_trick_value)
+        counters = bidder_counters + partner_counters
+
+        # Find out if the bid was saved or set
+        meld = self.high_bidder.meld.total_meld_given_trump[self.trump]
+        self.saved_bid = counters + meld >= self.high_bid
+
+        # If we saved the bid, add points to score
+        if self.saved_bid:
+            score = counters + meld
+            self.high_bidder.add_points(score)
+            if self.partner_gets_points:
+                partner = self.high_bidder.partner
+                partner.add_points(partner.meld.calculate_meld_with_trump(self.trump))
+
+            self.print(f'SAVED IT! Made {score} points')
+            self.log_state('HAND RESULT: BID SAVED')
+
+        # If the bid was set, remove points from score
+        else:
+            self.print('SET !!!')
+            self.high_bidder.remove_points(self.high_bid)
+            self.log_state('HAND RESULT: BID SET')
+
+    def play_hand(self):
+        self.log_state('START HAND', save_state=False)
+        self.initialize_new_hand()
+
+        self.log_state('START BIDDING PROCESS', save_state=False)
+        self.bidding_process()
+        self.log_state('END BIDDING PROCESS', save_state=False)
+
+        self.set_partners()
+        self.set_position()
+        self.call_trump()
+        self.pass_cards()
+        self.declare_meld()
+
+        self.log_state('START TRICKS', save_state=False)
+        self.play_tricks()
+        self.log_state('END TRICKS', save_state=False)
+
+        self.update_scores()
+        self.log_state('END HAND', save_state=False)
+
+    def play_tricks(self):
+        while self.high_bidder.hand:
+            self.play_next_trick()
+
+    def play_next_trick(self):
+        self.set_lead_player()
+        self.trick = Trick(self.n_players, self.trump)
+        for player in self.current_players:
+            self.play_next_card(player)
+
+        self.trick_winner = self.trick.winner()
+        self.trick_winner.tricks.append(self.trick)
+        self.log_state(f'PLAYER {self.trick_winner.index} TOOK TRICK')
+
+        msg = f'{str(self.trick)}\n' \
+              f'----------------------------'
+        self.print(msg)
+
+    @property
+    def remaining_trump(self):
+        return sum(self.remaining_cards[self.trump].values())
+
+    def player_index(self, player):
+        return self.players.index(player)
+
+    def player_cannot_beat(self, player: PinochlePlayer, card: Card):
         value_idx = Card.values.index(card.value)
         for idx in range(value_idx + 1, len(Card.values)):
             value = Card.values[idx]
             self.has_card[player][card.suit][value] = False
-    
-    def player_does_not_have_suit(player: PinochlePlayer, suit: str):
+
+    def player_does_not_have_suit(self, player: PinochlePlayer, suit: str):
         self.has_suit[player][suit] = False
         for value in Card.values:
             self.has_card[player][suit][value] = False
@@ -92,9 +494,9 @@ class SharedKnowledge:
         if not trick.card_to_beat:
             return True
         elif card.suit is trump:
-            if self.card_to_beat.suit is not trump or card > self.card_to_beat:
+            if trick.card_to_beat.suit is not trump or card > trick.card_to_beat:
                 return True
-        elif card.suit is self.card_to_beat.suit and card > self.card_to_beat:
+        elif card.suit is trick.card_to_beat.suit and card > trick.card_to_beat:
             return True
         return False
 
@@ -110,10 +512,10 @@ class SharedKnowledge:
             if trick.trump_played and trump is not trick.leading_suit:
                 return hand[trick.leading_suit]
             elif hand[trick.leading_suit][0] > trick.card_to_beat:
-                return [card for card in suit if card > trick.card_to_beat]
+                return [card for card in hand[trick.leading_suit] if card > trick.card_to_beat]
             else:
                 return hand[trick.leading_suit]
-        
+
         # Player must trump if they cannot follow suit
         elif hand.has_suit(trump):
             if trick.trump_played and hand[trump][0] > trick.card_to_beat:
@@ -124,246 +526,40 @@ class SharedKnowledge:
         # Player cannot trump or follow suit
         else:
             return hand.cards
-    
-    def player_can_take_trick(player: PinochlePlayer) -> bool:
-        legal = SharedKnowledge.legal_plays(Hand.one_of_each())
-        can_beat = SharedKnowledge.card_can_beat_trick(self.trick, legal[0], self.trump)
-        
+
+    def player_can_take_trick(self, player: PinochlePlayer) -> bool:
+        legal = self.legal_plays(self.trick, Hand.one_of_each(), self.trump)
+        can_beat = self.card_can_beat_trick(self.trick, legal[0], self.trump)
+
         if self.has_suit[player][self.trick.leading_suit]:
             if self.trick.trump_played:
                 return False
             elif self.trick.card_to_beat.value is 'A':
                 return False
-            
+
             value = self.trick.card_to_beat.value
             value_idx = Card.values.index(value)
             for idx in range(value_idx + 1, len(Card.values)):
                 value = Card.values[idx]
-                if self.has_card[player][suit][value]:
+                if self.has_card[player][self.trick.leading_suit][value]:
                     return True
             return False
-                
+
         elif self.has_suit[player][self.trump]:
-        
-    
-    def likelihood_player_will_take_trick(player: PinochlePlayer) -> float:
+            # Todo: finish this method
+            pass
+
+
+    def likelihood_player_will_take_trick(self, player: PinochlePlayer) -> float:
         pass
-    
-    def player_has_played(player: PinochlePlayer) -> bool:
+
+    def player_has_played(self, player: PinochlePlayer) -> bool:
         return player in self.trick.card_players
-    
-    def next_player() -> PinochlePlayer:
-        for player in self.player_order:
-            if player not in trick.card_players:
-                return player
-'''
 
-
-class Pinochle:
-
-    last_trick_value = 1
-    deck_type = PinochleDeck
-    dropped_bid_amt = 25
-    minimum_bid_amt = 30
-    bid_increment_amt = 5
-    n_players = 4
-    n_cards_to_pass = 3
-    n_tricks = 12
-
-    def __init__(self, players=None, winning_score=None):
-        self.deck = self.deck_type()
-        self.players = players or []
-
-        self.hand_count = -1
-
-        self.trump = None
-        self.high_bid = 0
-        self.high_bidder = None
-        self.current_players = []
-        self.human_player = self.find_human_player()
-
-        self.winning_score = winning_score
-        self.partner_gets_points = False
-
-        self._printing = False
-
-    @property
-    def printing(self):
-        return self._printing or self.human_player is not None
-
-    @printing.setter
-    def printing(self, value):
-        self._printing = value
-
-    def get_state(self):
-        return {
-            'player_states': [p.get_state() for p in self.players],
-            'game_type': self.__class__.__name__,
-            'deck_type': self.deck_type.__name__,
-            'rule_set': 'default',
-            'hand_state': self.get_hand_state(),
-            'last_trick_value': self.last_trick_value,
-            'dropped_bid_amt': self.dropped_bid_amt,
-            'minimum_bid_amt': self.minimum_bid_amt,
-            'bid_increment_amt': self.bid_increment_amt,
-            'n_players': self.n_players,
-            'n_cards_to_pass': self.n_cards_to_pass,
-            'n_tricks': self.n_tricks,
-        }
-
-    def get_hand_state(self):
-        return {
-            'player_hands': [p.hand for p in self.players],
-            'player_melds': [p.meld for p in self.players],
-            #'record_of_tricks': self.tricks, # Todo: do some refactoring
-            #'record_of_bids': self.bids,
-            #'initial_kitty': self.initial_kitty,
-            #'final_kitty': self.final_kitty,
-            'trump': self.trump,
-            'high_bid': self.high_bid,
-            'high_bidder': self.high_bidder,
-            'dropped_bid': self.dropped_bid_amt,
-        }
-
-    def play_to(self, winning_score):
-        self.winning_score = winning_score
-
-    def set_include_partners_meld(self, value):
-        self.partner_gets_points = value
-
-    def deal(self):
-        hands = self.deck.deal()
-        self.current_players[0].take_cards(hands[0])
-        self.current_players[1].take_cards(hands[1])
-        self.current_players[2].take_cards(hands[2])
-        self.current_players[3].take_cards(hands[3])
-
-    def find_human_player(self):
-        for player in self.players:
-            if isinstance(player, HumanPinochlePlayer):
-                return player
-
-    def show_human_hand_and_meld(self):
-        if self.human_player and self.human_player in self.current_players:
-            print(' ')
-            print('Your hand')
-            print('...')
-            print(self.human_player.hand)
-            print('Meld: ', self.human_player.meld)
-
-    def pass_cards(self):
-        from_partner = self.high_bidder.partner.discard(self.n_cards_to_pass)
-        self.high_bidder.take_cards(from_partner)
-        if self.high_bidder is self.human_player:
-            print('New meld: ', self.high_bidder.meld)
-        to_partner = self.high_bidder.discard(self.n_cards_to_pass)
-        self.high_bidder.partner.take_cards(to_partner)
-
-    def update_current_players(self):
-        """
-        Locates the current players out of the player pool and
-        rotates player order each hand so the bid order changes.
-        """
-        # Find and order current players
-        n, N = self.n_players, len(self.players)
-        self.current_players = [self.players[i % N] for i in range(self.hand_count, self.hand_count + n)]
+    def next_player(self) -> PinochlePlayer:
         for player in self.current_players:
-            player.start_new_hand()
-
-    def bid(self):
-        # If no one bids, then the bid gets dropped on the last bidder
-        game_type = type(self)
-        self.high_bid = game_type.minimum_bid_amt - game_type.bid_increment_amt
-        self.high_bidder = self.current_players[-1]
-        passed = {player: False for player in self.current_players}
-
-        # Everyone keeps bidding until everyone passes except one person
-        while sum(passed.values()) < len(self.current_players) - 1:
-            for player in self.current_players:
-                if not passed[player]:
-                    this_bid = player.place_bid(self.high_bid, game_type.bid_increment_amt)
-                    if this_bid:
-                        self.high_bid = this_bid
-                        self.high_bidder = player
-                    else:
-                        passed[player] = True
-
-    def begin_next_hand(self):
-        self.update_current_players()
-        self.hand_count += 1
-
-    def set_lead_player(self, player):
-        lead_idx = self.current_players.index(player)
-        n = len(self.current_players)
-        self.current_players = [self.current_players[(lead_idx + i) % n] for i in range(n)]
-        player.is_high_bidder = True
-
-    def set_partners(self):
-        self.current_players[0].partner = self.current_players[2]
-        self.current_players[2].partner = self.current_players[0]
-        self.current_players[1].partner = self.current_players[3]
-        self.current_players[3].partner = self.current_players[1]
-
-    def play_hand(self):
-        self.begin_next_hand()
-        self.deck.shuffle()
-        self.deal()
-        self.show_human_hand_and_meld()
-        self.bid()
-        self.set_lead_player(self.high_bidder)
-        self.set_partners()
-
-        if self.printing:
-            print(' ')
-            print('Beginning hand #{}'.format(self.hand_count))
-            print(self.high_bidder, 'took the bid at', self.high_bid)
-
-        self.trump = self.high_bidder.choose_trump()
-        self.pass_cards()
-
-        if self.printing:
-            print('Trump is', self.trump)
-
-        trick_winner = None
-        while self.high_bidder.hand:
-
-            if self.printing:
-                print(str(self.current_players[0]), 'is leading')
-
-            trick = Trick(self.n_players, self.trump)
-            for player in self.current_players:
-                card = player.play_card(trick)
-                trick.add_card(card, player)
-
-            trick_winner = trick.winner()
-            trick_winner.tricks.append(trick)
-            self.set_lead_player(trick_winner)
-
-            if self.printing:
-                print(str(trick))
-                print('---------------------------')
-
-        # Add points for last trick
-        trick_winner.took_last_trick = True
-
-        counters = self.high_bidder.counters(self.last_trick_value) + \
-                   self.high_bidder.partner.counters(self.last_trick_value)
-        meld = self.high_bidder.meld.total_meld_given_trump[self.trump]
-        if counters + meld < self.high_bid:
-            if self.printing:
-                print('SET !!!')
-            self.high_bidder.remove_points(self.high_bid)
-            return -meld
-        else:
-            points = counters + meld
-            if self.printing:
-                print('SAVED IT !!!')
-                print('Made {} points'.format(points))
-            self.high_bidder.add_points(points)
-            if self.partner_gets_points:
-                partner = self.high_bidder.partner
-                partner.add_points(partner.meld.calculate_meld_with_trump(self.trump))
-            return points
+            if player not in self.trick.card_players:
+                return player
 
 
 class DoubleDeckPinochle(Pinochle):
@@ -373,10 +569,9 @@ class DoubleDeckPinochle(Pinochle):
     dropped_bid_amt = 50
     minimum_bid_amt = 60
     bid_increment_amt = 10
-    n_tricks = 20
 
-    def __init__(self, players=None, winning_score=None):
-        Pinochle.__init__(self, players, winning_score)
+    def __init__(self, players=None, printing=False, logging=False):
+        Pinochle.__init__(self, players, printing=printing, logging=logging)
 
 
 class FirehousePinochle(DoubleDeckPinochle):
@@ -384,20 +579,10 @@ class FirehousePinochle(DoubleDeckPinochle):
     deck_type = FirehousePinochleDeck
     n_players = 3
     n_cards_to_pass = 5
-    n_tricks = 25
 
-    def __init__(self, players=None, winning_score=None):
-        DoubleDeckPinochle.__init__(self, players, winning_score)
+    def __init__(self, players=None, printing=False, logging=False):
+        DoubleDeckPinochle.__init__(self, players, printing=printing, logging=logging)
         self.kitty = Kitty()
-        self.initial_kitty = None
-        self.final_kitty = None
-
-    def get_hand_state(self):
-        return {
-            **super().get_hand_state(),
-            'initial_kitty': self.initial_kitty,
-            'final_kitty': self.final_kitty,
-        }
 
     def deal(self, shuffle=True):
         hands = self.deck.deal()
@@ -414,17 +599,35 @@ class FirehousePinochle(DoubleDeckPinochle):
         self.current_players[idx].partner = self.current_players[idx - 1]
         self.current_players[idx - 1].partner = self.current_players[idx]
 
+        self.log_state('SET PARTNERS')
+
+    def set_position(self):
+        lead_idx = self.current_players.index(self.high_bidder)
+        n_players = len(self.current_players)
+        positions = {
+            lead_idx: 'high_bidder',
+            ((lead_idx + 1) % n_players): 'back_seat',
+            ((lead_idx + 2) % n_players): 'front_seat',
+        }
+        for idx in range(lead_idx, lead_idx + n_players):
+            cur_idx = idx % n_players
+            self.current_players[cur_idx].position = positions[cur_idx]
+
+        self.log_state('SET POSITION')
+
     def set_include_partners_meld(self, value):
         pass
 
     def update_current_players(self):
-        self.kitty.start_new_hand()
+        self.kitty.reset_hand_state()
         super().update_current_players()
 
 
-def test_game(game_type, players):
-    the_game = game_type(players)
-    return the_game.play_hand()
+def play_and_save_hands(game_type, players):
+    the_game = game_type(players, logging=True)
+    while True:
+        score = the_game.play_hand()
+        the_game.write_log_to_file(path='logs/hands')
 
 
 def test():
@@ -459,7 +662,7 @@ def play():
                SimplePinochlePlayer('Charlie', 100),
                SimplePinochlePlayer('Dave', 100)]
 
-    test_game(FirehousePinochle, players[:3])
+    play_and_save_hands(FirehousePinochle, players[:3])
 
 
 if __name__ == "__main__":

@@ -63,10 +63,10 @@ class NextCardDatasetBuilder(DatasetBuilder):
         count = 0
         for _ in range(n_hands):
             # Start single hand
-            self.game.begin_next_hand()
+            self.game.initialize_new_hand()
             self.game.deck.shuffle()
             self.game.deal()
-            self.game.high_bidder, self.game.high_bid = self.game.bid()
+            self.game.high_bidder, self.game.high_bid = self.game.bidding_process()
             self.game.set_lead_player(self.game.high_bidder)
             self.game.set_partners()
 

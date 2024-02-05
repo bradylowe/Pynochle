@@ -7,12 +7,13 @@ from GameLogic.meld import Meld
 class PinochlePlayer:
 
     def __init__(self, name, balance=0, user_name=None):
-        self.id = uuid4()
+        self.id = str(uuid4())
         self.name = name
         self.balance = balance
         self.user_name = user_name or name
         self.score = 0
 
+        self.index = None
         self.tricks = []
         self.took_last_trick = None
         self.hand = Hand()
@@ -20,6 +21,7 @@ class PinochlePlayer:
         self.is_high_bidder = None
         self.partner = None
         self.trump = None
+        self.position = None
 
     def add_points(self, points):
         self.score += points
@@ -36,15 +38,32 @@ class PinochlePlayer:
             'score': self.score,
             'player_type': self.__class__.__name__,
 
+            'index': self.index,
             'tricks': [t.get_state() for t in self.tricks],
             'took_last_trick': self.took_last_trick,
             'hand': self.hand.get_state(),
             'meld': self.meld.final,
             'is_high_bidder': self.is_high_bidder,
-            'partner': self.partner.id,
+            'partner': None if self.partner is None else self.partner.index,
         }
 
-    def start_new_hand(self):
+    def get_public_state(self):
+        return {
+            'user_name': self.user_name,
+            'score': self.score,
+            'player_type': self.__class__.__name__,
+
+            'index': self.index,
+            'tricks': [t.get_state() for t in self.tricks],
+            'took_last_trick': self.took_last_trick,
+            'meld': self.meld.final,
+            'is_high_bidder': self.is_high_bidder,
+            'partner': self.partner.index,
+            'trump': self.trump,
+            'position': self.position,
+        }
+
+    def reset_hand_state(self):
         self.hand = Hand()
         self.meld = Meld(self.hand)
         self.is_high_bidder = None
@@ -125,6 +144,34 @@ class SimplePinochlePlayer(PinochlePlayer):
         return False
 
 
+class SkilledPinochlePlayer(SimplePinochlePlayer):
+
+    def __init__(self, name, balance=0, user_name=None):
+        super().__init__(name, balance, user_name)
+
+    def place_bid(self, current_bid, bid_increment):
+        # Decide when to bet big
+        # Decide when to drop the bid on someone
+        pass
+
+    def play_card(self, trick):
+        # Decide whether to take the trick
+        # Decide what to play into partner (back-seat)
+        # Decide what to play into non-partner
+        # Decide when to pay trick
+        pass
+
+    def discard(self, n=0):
+        # Do not discard meld, trump, aces
+        # Discard counters
+        pass
+
+    def should_pay_trick(self, trick):
+        # Do not pay trick if someone is trumping this suit
+        # Pay trick if partner is trumping this suit
+        pass
+
+
 class RandomPinochlePlayer(SimplePinochlePlayer):
 
     def __init__(self, name, balance=0, user_name=None):
@@ -161,8 +208,8 @@ class HumanPinochlePlayer(PinochlePlayer):
 
     def place_bid(self, current_bid, bid_increment):
         print(' ')
-        print('Please enter a bid amount. The minimum bid is {}.'.format(current_bid + bid_increment))
-        print('The bid must increase in increments of {}.'.format(bid_increment))
+        print(f'Please enter a bid amount. The minimum bid is {current_bid + bid_increment}.')
+        print(f'The bid must increase in increments of {bid_increment}.')
         bid = input('Bid (press Enter to pass):  ')
         try:
             return int(bid)
@@ -177,6 +224,7 @@ class HumanPinochlePlayer(PinochlePlayer):
         enumerated = legal.enumerate()
         choices_string = ', '.join(['{}: {}'.format(idx, card) for idx, card in enumerated.items()])
         print('Legal plays:', choices_string)
+        print('Position:', self.position)
         card = None
         while card is None:
             print('Trick: ', str(trick))

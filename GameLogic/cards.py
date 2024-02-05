@@ -163,6 +163,7 @@ class PinochleDeck(Deck):
 
     n_players = 4
     values = ['9', 'J', 'Q', 'K', '10', 'A']
+    card_instances = 2
 
     def __init__(self):
         Card.values = self.values
@@ -176,7 +177,7 @@ class PinochleDeck(Deck):
 
     def build_deck(self):
         Card.values = self.values
-        return 2 * Deck.build_deck(self)
+        return self.card_instances * Deck.build_deck(self)
 
     def deal(self):
         return self.cards[0:12], self.cards[12:24], self.cards[24:36], self.cards[36:48]
@@ -193,17 +194,13 @@ class PinochleDeck(Deck):
 class DoublePinochleDeck(PinochleDeck):
 
     values = ['J', 'Q', 'K', '10', 'A']
+    card_instances = 4
 
     def __init__(self):
         super().__init__()
 
-    def build_deck(self):
-        return 2 * PinochleDeck.build_deck(self)
-
     def deal(self):
-        h1, h2, h3, h4 = self.cards[0:20], self.cards[20:40], self.cards[40:60], self.cards[60:80]
-        self.cards = []
-        return h1, h2, h3, h4
+        return self.cards[0:20], self.cards[20:40], self.cards[40:60], self.cards[60:80]
 
 
 class FirehousePinochleDeck(DoublePinochleDeck):
@@ -214,9 +211,7 @@ class FirehousePinochleDeck(DoublePinochleDeck):
         super().__init__()
 
     def deal(self):
-        h1, h2, h3, kitty = self.cards[0:25], self.cards[25:50], self.cards[50:75], self.cards[75:80]
-        self.cards = []
-        return h1, h2, h3, kitty
+        return self.cards[0:25], self.cards[25:50], self.cards[50:75], self.cards[75:80]
 
 
 class Hand(PartialDeck):

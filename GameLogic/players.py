@@ -1,4 +1,4 @@
-from typing import List
+from typing import Union, List
 from uuid import uuid4
 import numpy as np
 from GameLogic.cards import Card, Hand, PinochleDeck
@@ -78,7 +78,7 @@ class PinochlePlayer:
         self.hand.add_cards(cards)
         self.meld = Meld(self.hand)
 
-    def place_bid(self, current_bid, bid_increment):
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
         pass
 
     def play_card(self, trick):
@@ -90,14 +90,21 @@ class PinochlePlayer:
     def choose_trump(self):
         pass
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def discard(self, cards: Union[Card, List[Card]]):
+        if isinstance(cards, Card):
+            self.hand.discard(cards)
+        else:
+            for card in cards:
+                self.hand.discard(card)
+        self.meld = Meld(self.hand)
+        return cards
+
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         pass
 
-    def discard(self, n: int = 0) -> List[Card]:
-        cards = self._choose_cards_to_discard(n=n)
-        for card in cards:
-            self.hand.discard(card)
-        self.meld = Meld(self.hand)
+    def pass_cards(self, n: int = 0) -> List[Card]:
+        cards = self._choose_cards_to_pass(n=n)
+        self.discard(cards)
         return cards
 
     def should_pay_trick(self, trick):
@@ -119,7 +126,7 @@ class SimplePinochlePlayer(PinochlePlayer):
     def __init__(self, name, balance=0, user_name=None):
         super().__init__(name, balance, user_name)
 
-    def place_bid(self, current_bid, bid_increment):
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
         best_suit = self.meld.best_ranked_suit
         max_bid = self.meld.total_meld_given_trump[best_suit] + 20
         new_bid = current_bid + bid_increment
@@ -142,7 +149,7 @@ class SimplePinochlePlayer(PinochlePlayer):
     def choose_trump(self):
         return self.meld.best_ranked_suit
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         return self.hand.cards[:n]
 
     def should_pay_trick(self, trick):
@@ -160,7 +167,7 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
     def __init__(self, name, balance=0, user_name=None):
         super().__init__(name, balance, user_name)
 
-    def place_bid(self, current_bid, bid_increment):
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
         # Decide when to bet big
         # Decide when to drop the bid on someone
         pass
@@ -172,7 +179,7 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
         # Decide when to pay trick
         pass
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         # Do not discard meld, trump, aces
         # Discard counters
         pass
@@ -198,7 +205,7 @@ class RandomPinochlePlayer(SimplePinochlePlayer):
             trump = Card.suits[np.random.randint(4)]
         return trump
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         return np.random.choice(self.hand.cards, n, replace=False)
 
     def should_pay_trick(self, trick, remaining_players=None):
@@ -213,7 +220,7 @@ class HumanPinochlePlayer(PinochlePlayer):
             name = input('What is your name?  ')
         super().__init__(name, balance, user_name)
 
-    def place_bid(self, current_bid, bid_increment):
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
         print(' ')
         print(f'Please enter a bid amount. The minimum bid is {current_bid + bid_increment}.')
         print(f'The bid must increase in increments of {bid_increment}.')
@@ -259,7 +266,7 @@ class HumanPinochlePlayer(PinochlePlayer):
             except IndexError:
                 print('Invalid choice')
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         print(' ')
         discard_idxs = []
 
@@ -300,7 +307,7 @@ class Kitty(PinochlePlayer):
     def take_cards(self, cards):
         self.hand.add_cards(cards)
 
-    def place_bid(self, current_bid, bid_increment):
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
         pass
 
     def play_card(self, trick):
@@ -309,5 +316,5 @@ class Kitty(PinochlePlayer):
     def choose_trump(self):
         pass
 
-    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         return self.hand.cards[:n]

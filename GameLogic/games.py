@@ -70,7 +70,6 @@ class Pinochle:
 
         # Trick information
         self.trick = None
-        self.best_card_in_trick = None
         self.trick_winner = None
         self.tricks_played = []
         self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
@@ -128,7 +127,6 @@ class Pinochle:
 
         # Trick information
         self.trick = None
-        self.best_card_in_trick = None
         self.trick_winner = None
         self.tricks_played = []
         self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
@@ -179,7 +177,6 @@ class Pinochle:
             'saved_bid': self.saved_bid,
 
             'trick': None if self.trick is None else self.trick.get_state(),
-            #'best_card_in_trick': self.best_card_in_trick.get_state(),
             'trick_winner': None if self.trick_winner is None else self.trick_winner.index,
             'tricks_played': [t.get_state() for t in self.tricks_played],
             'remaining_cards': self.remaining_cards,
@@ -254,7 +251,7 @@ class Pinochle:
 
     def take_cards(self):
         self.log_state(f'WAITING FOR PLAYER {self.high_bidder.partner.index} TO PASS CARDS', save_state=False)
-        from_partner = self.high_bidder.partner.discard(self.n_cards_to_pass)
+        from_partner = self.high_bidder.partner.pass_cards(self.n_cards_to_pass)
         self.high_bidder.take_cards(from_partner)
         if self.high_bidder is self.human_player:
             self.print('New meld: ', self.high_bidder.meld)
@@ -262,7 +259,7 @@ class Pinochle:
 
     def give_cards(self):
         self.log_state(f'WAITING FOR PLAYER {self.high_bidder.index} TO PASS CARDS', save_state=False)
-        to_partner = self.high_bidder.discard(self.n_cards_to_pass)
+        to_partner = self.high_bidder.pass_cards(self.n_cards_to_pass)
         self.high_bidder.partner.take_cards(to_partner)
         self.log_state('GIVE CARDS')
 

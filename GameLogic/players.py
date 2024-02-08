@@ -190,6 +190,32 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
         pass
 
 
+class MonteCarloPinochlePlayer(SimplePinochlePlayer):
+
+    def __init__(self, name, balance=0, user_name=None):
+        super().__init__(name, balance, user_name)
+
+    def place_bid(self, current_bid: int, bid_increment: int) -> int:
+        # Decide when to bet big
+        # Decide when to drop the bid on someone
+        pass
+
+    def play_card(self, trick):
+        # Decide whether to take the trick
+        # Decide what to play into partner (back-seat)
+        # Decide what to play into non-partner
+        # Decide when to pay trick
+        pass
+
+    def choose_trump(self):
+        pass
+
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
+        # Do not discard meld, trump, aces
+        # Discard counters
+        pass
+
+
 class RandomPinochlePlayer(SimplePinochlePlayer):
 
     def __init__(self, name, balance=0, user_name=None):

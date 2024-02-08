@@ -1,3 +1,4 @@
+from typing import List
 from uuid import uuid4
 import numpy as np
 from GameLogic.cards import Card, Hand, PinochleDeck

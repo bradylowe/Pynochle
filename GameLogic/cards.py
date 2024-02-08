@@ -138,6 +138,9 @@ class PartialDeck:
     def __getitem__(self, key):
         return self.cards[key]
 
+    def __contains__(self, item):
+        return item in self.cards
+
 
 class Deck(PartialDeck):
 

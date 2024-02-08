@@ -89,8 +89,15 @@ class PinochlePlayer:
     def choose_trump(self):
         pass
 
-    def discard(self, n=0):
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
         pass
+
+    def discard(self, n: int = 0) -> List[Card]:
+        cards = self._choose_cards_to_discard(n=n)
+        for card in cards:
+            self.hand.discard(card)
+        self.meld = Meld(self.hand)
+        return cards
 
     def should_pay_trick(self, trick):
         pass
@@ -134,10 +141,8 @@ class SimplePinochlePlayer(PinochlePlayer):
     def choose_trump(self):
         return self.meld.best_ranked_suit
 
-    def discard(self, n=0):
-        cards = [self.hand.play(card) for card in self.hand.cards[:n]]
-        self.meld = Meld(self.hand)
-        return cards
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+        return self.hand.cards[:n]
 
     def should_pay_trick(self, trick):
         if len(trick) == 0:
@@ -166,7 +171,7 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
         # Decide when to pay trick
         pass
 
-    def discard(self, n=0):
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
         # Do not discard meld, trump, aces
         # Discard counters
         pass
@@ -192,12 +197,8 @@ class RandomPinochlePlayer(SimplePinochlePlayer):
             trump = Card.suits[np.random.randint(4)]
         return trump
 
-    def discard(self, n=0):
-        cards = []
-        while len(cards) < n:
-            cards.append(self.hand.play(self.hand.choose_random_card()))
-        self.meld = Meld(self.hand)
-        return cards
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+        return np.random.choice(self.hand.cards, n, replace=False)
 
     def should_pay_trick(self, trick, remaining_players=None):
         return bool(np.random.randint(2))
@@ -257,7 +258,7 @@ class HumanPinochlePlayer(PinochlePlayer):
             except IndexError:
                 print('Invalid choice')
 
-    def discard(self, n=0):
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
         print(' ')
         discard_idxs = []
 
@@ -287,9 +288,7 @@ class HumanPinochlePlayer(PinochlePlayer):
                 else:
                     discard_idxs.append(card)
 
-        cards = [self.hand.play(enumerated[idx]) for idx in discard_idxs]
-        self.meld = Meld(self.hand)
-        return cards
+        return [enumerated[idx] for idx in discard_idxs]
 
 
 class Kitty(PinochlePlayer):
@@ -309,7 +308,5 @@ class Kitty(PinochlePlayer):
     def choose_trump(self):
         pass
 
-    def discard(self, n=0):
-        cards = self.hand.cards[:n]
-        self.hand.cards = self.hand.cards[n:]
-        return cards
+    def _choose_cards_to_discard(self, n: int = 0) -> List[Card]:
+        return self.hand.cards[:n]

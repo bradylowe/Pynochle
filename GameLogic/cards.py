@@ -228,13 +228,18 @@ class Hand(PartialDeck):
         self.cards = cards
         self.sort()
 
-    def play(self, card):
+    def discard(self, card: Card):
         for this_card in self.sorted_by_suit[card.suit]:
             if this_card == card:
                 self.cards.remove(this_card)
                 self.sorted_by_suit[card.suit].remove(this_card)
-                return card
-        raise ValueError('Cannot play {}, it is not in the hand'.format(str(card)))
+                return
+
+        raise ValueError(f'{card} is not in the hand')
+
+    def play(self, card: Card) -> Card:
+        self.discard(card)
+        return card
 
     def add_card(self, card: Card):
         super().add_card(card)
@@ -318,7 +323,7 @@ class Hand(PartialDeck):
         result = copy.deepcopy(self)
         for card in other:
             try:
-                result.play(card)
+                result.discard(card)
             except ValueError:
                 pass
         return result
@@ -407,7 +412,7 @@ def test_hand(print_func=print):
     while len(hand):
         card = hand.choose_random_card()
         print_func('Here is the hand after playing', card)
-        hand.play(card)
+        hand.discard(card)
         print_func(hand)
         count -= 1
         assert len(hand) == count, 'Hand has {} cards when {} were expected'.format(len(hand), count)

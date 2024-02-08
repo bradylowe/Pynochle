@@ -305,7 +305,7 @@ class Pinochle:
             return bid <= self.high_bid
 
         def bid_not_increment(bid):
-            return bid % self.bid_increment_amt == 0
+            return bid % self.bid_increment_amt != 0
 
         this_bid = player.place_bid(self.high_bid, self.bid_increment_amt)
         if isinstance(player, HumanPinochlePlayer) and this_bid is not None:

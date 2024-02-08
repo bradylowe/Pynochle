@@ -47,7 +47,7 @@ class PinochlePlayer:
             'partner': None if self.partner is None else self.partner.index,
         }
 
-    def get_public_state(self):
+    def get_shared_state(self):
         return {
             'user_name': self.user_name,
             'score': self.score,
@@ -64,10 +64,14 @@ class PinochlePlayer:
         }
 
     def reset_hand_state(self):
+        self.tricks = []
+        self.took_last_trick = None
         self.hand = Hand()
         self.meld = Meld(self.hand)
         self.is_high_bidder = None
         self.partner = None
+        self.trump = None
+        self.position = None
 
     def take_cards(self, cards):
         self.hand.add_cards(cards)

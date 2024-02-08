@@ -251,6 +251,10 @@ class Hand(PartialDeck):
     def has_suit(self, suit):
         return len(self.sorted_by_suit[suit]) > 0
 
+    def has_marriage(self, suit):
+        k, q = Card(suit, 'K'), Card(suit, 'Q')
+        return k in self.sorted_by_suit[suit] and q in self.sorted_by_suit[suit]
+
     def choose_random_card(self, suit=None):
         if len(self.cards) == 0:
             raise AttributeError('Cannot choose a random card, no cards in the hand')

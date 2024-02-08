@@ -114,18 +114,14 @@ class Meld:
         return sum([idx * idx * self.counts[suit][Card.values[idx]] for idx in range(len(Card.values))])
 
     def calculate_suit_rank(self, suit):
-        if self.marriage_melds[suit] > 0:
+        # Cannot bid on suit without marriage
+        if self.has_marriage(suit):
             return self.total_meld_given_trump[suit] * 5 + self.power[suit]
         else:
             return 0
 
-    def calculate_best_ranked_suit(self):
-        best_suit, best_rank = 'Spades', 0
-        for suit, rank in self.rank.items():
-            if rank > best_rank:
-                best_rank = rank
-                best_suit = suit
-        return best_suit
+    def has_marriage(self, suit: str) -> bool:
+        return self.marriage_melds[suit] > 0
 
     def to_str(self, color=False):
         melds = []

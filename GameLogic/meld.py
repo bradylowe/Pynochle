@@ -40,12 +40,18 @@ class Meld:
         self.power = {suit: self.calculate_suit_power(suit) for suit in Card.suits}
         self.rank = {suit: self.calculate_suit_rank(suit) for suit in Card.suits}
 
-        self.best_ranked_suit = self.calculate_best_ranked_suit()
-        self.meld_of_best_suit = self.total_meld_given_trump[self.best_ranked_suit] if self.best_ranked_suit else 0
-
         # Set trump if it was given
         if trump is not None:
             self.set_trump(trump)
+
+    @property
+    def best_ranked_suit(self):
+        best_suit, best_rank = Card.suits[0], 0
+        for suit, rank in self.rank.items():
+            if rank > best_rank:
+                best_rank = rank
+                best_suit = suit
+        return best_suit
 
     def set_trump(self, trump):
         """Set the value of the final meld once trump is called"""
@@ -123,9 +129,10 @@ class Meld:
 
     def to_str(self, color=False):
         melds = []
+        best_ranked_suit = self.best_ranked_suit
         for suit, meld in self.total_meld_given_trump.items():
             suit_meld = '{} - {}'.format(suit, meld)
-            melds.append(colored(suit_meld, 'yellow') if (color and self.best_ranked_suit == suit) else suit_meld)
+            melds.append(colored(suit_meld, 'yellow') if (color and best_ranked_suit == suit) else suit_meld)
         return ' | '.join(melds)
 
     def __str__(self):
@@ -149,7 +156,7 @@ if __name__ == "__main__":
     print('Power: ', meld.power)
     print('Ranks: ', meld.rank)
     print('Melds: ', meld.total_meld_given_trump)
-    print('Best:  ', '{} - {}'.format(meld.best_ranked_suit, meld.meld_of_best_suit))
+    print('Best:  ', '{} - {}'.format(meld.best_ranked_suit, meld.total_meld_given_trump[meld.best_ranked_suit]))
     print()
     print('Nines meld: ', meld.nines_meld)
     print('Family melds: ', meld.family_melds)

@@ -112,7 +112,8 @@ class SimplePinochlePlayer(PinochlePlayer):
         super().__init__(name, balance, user_name)
 
     def place_bid(self, current_bid, bid_increment):
-        max_bid = self.meld.meld_of_best_suit + 20
+        best_suit = self.meld.best_ranked_suit
+        max_bid = self.meld.total_meld_given_trump[best_suit] + 20
         new_bid = current_bid + bid_increment
         if new_bid <= max_bid:
             return new_bid

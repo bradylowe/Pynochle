@@ -1,18 +1,24 @@
+import os
+import sys
+sys.path.append(os.path.abspath('./'))
+
+from typing import Optional
 import numpy as np
 
 import matplotlib.pyplot as plt
 
-from GameLogic.games import FirehousePinochle, Trick
-from GameLogic.cards import Hand
+from GameLogic.games import FirehousePinochle
+from GameLogic.cards import Card, Hand
 from GameLogic.players import PinochlePlayer
 
 
 def test_bids_monto_carlo(
     hand: Hand,
     trump: str,
-    n_trials: int,
-    other_player_type: type,
-    min_bid: int = 0,
+    bids: list,
+    n_trials_per_bid: int,
+    player_type: type,
+    other_player_type: Optional[type] = None,
 ):
     """
     Test the given human hand in a Monte Carlo-type simulation.
@@ -28,169 +34,263 @@ def test_bids_monto_carlo(
 
     Parameters
     -----
-
     hand : Hand
         The hand to be tested
     trump : str
         The suit to choose for trump in running the trials
-    n_trials : int
-        The total number of trials (simulations) to run on the hand
+    bids : list
+        List of bids to use in simulations
+    n_trials_per_bid : int
+        The total number of trials (simulations) to run for each bid
+    player_type : type[PinochlePlayer]
+        Determines the algorithm to use to make decisions for the
+        main player
     other_player_type : type[PinochlePlayer]
         Determines the algorithm to use to make the decisions
-        in the simulation trials
-    min_bid : int
-        Minimum bid allowed
+        for the other players in the simulation trials
 
     Returns
     -----
-
-    list[int]
-        List of bid amounts where the player attempted to save the bid
     list[int]
         List of bid amounts where the player saved the bid
     """
-    players = [other_player_type(f'P{idx}') for idx in range(FirehousePinochle.n_players)]
-    game = FirehousePinochle(players)
-    game.begin_next_hand()
 
     # Initialize the output lists
-    bids, saved_bids = [], []
+    saved_bids = []
+
+    # Check for valid hand for bidding
+    if not hand.has_marriage(trump):
+        return saved_bids
+
+    # Set up players
+    if other_player_type is None:
+        other_player_type = player_type
+
+    player = player_type('P0')
+    other_player_1 = other_player_type('P1')
+    other_player_2 = other_player_type('P2')
+    players = [player, other_player_1, other_player_2]
+
+    # Create the game
+    game = FirehousePinochle(players)
 
     # Remove the player's cards from the pinochle deck
-    for player_card in hand.cards:
-        for idx, deck_card in enumerate(game.deck.cards):
-            if player_card == deck_card:
-                del game.deck.cards[idx]
-                break
+    for card in hand.cards:
+        game.deck.discard(card)
 
     # Start the simulation trials
-    for idx in range(n_trials):
+    for bid in bids:
+        for idx in range(n_trials_per_bid):
 
-        # Set up our players with the appropriate cards
-        game.update_current_players()
-        game.current_players[0].hand = hand.copy()
+            # Set up the next hand
+            game.start_next_hand()
+            game.update_current_players()
 
-        # Shuffle and deal the remaining cards to remaining players
-        game.deck.shuffle()
-        game.current_players[1].take_cards(game.deck.cards[0:25])
-        game.current_players[2].take_cards(game.deck.cards[25:50])
-        game.kitty.take_cards(game.deck.cards[50:55])
+            # Deal the cards to the remaining players
+            # game.deal()
+            game.deck.shuffle()
+            player.take_cards(hand.cards)
+            other_player_1.take_cards(game.deck.cards[0:25])
+            other_player_2.take_cards(game.deck.cards[25:50])
+            game.kitty.take_cards(game.deck.cards[50:55])
 
-        # Set the bid
-        game.high_bidder = game.current_players[0]
-        game.set_lead_player(game.high_bidder)
-        game.set_partners()
+            # Calculate a random bid for the main player based on the meld value
+            # game.bidding_process()
+            game.high_bidder = player
+            game.high_bid = bid
+            game.trump = trump
 
-        # Call trump and get cards from the kitty
-        game.trump = trump
-        game.pass_cards()
+            # Complete the hand
+            game.set_partners()
+            game.set_position()
+            # game.call_trump()
+            game.pass_cards()
+            game.declare_meld()
+            game.play_tricks()
+            game.update_scores()
 
-        # Calculate a random bid based on the meld value
-        meld = game.current_players[0].meld.total_meld_given_trump[trump]
-        mu = meld + 20
-        sigma = np.sqrt(mu)
-        game.high_bid = max(min_bid, int(sigma * np.random.randn() + mu))
-        bids.append(game.high_bid)
+            if game.saved_bid:
+                saved_bids.append(game.high_bid)
 
-        # Play the hand
-        trick_winner = game.high_bidder
-        while game.high_bidder.hand:
-
-            trick = Trick(game.n_players, game.trump)
-            for player in game.current_players:
-                card = player.play_card(trick)
-                trick.add_card(card, player)
-
-            trick_winner = trick.winner()
-            game.set_lead_player(trick_winner)
-
-        # Add points for last trick
-        trick_winner.took_last_trick = True
-
-        # If the player saved the hand, increment the counter
-        # for this bid amount
-        counters = game.high_bidder.counters(game.last_trick_value) + \
-                   game.high_bidder.partner.counters(game.last_trick_value)
-
-        meld = game.high_bidder.meld.total_meld_given_trump[game.trump]
-        if counters + meld >= game.high_bid:
-            saved_bids.append(game.high_bid)
-
-    return bids, saved_bids
+    return saved_bids
 
 
-def plot_bid_histograms(suits: list, bids: list, won_bids: list, bins: int = 50, log: bool = False):
+def plot_bid_bar_charts(saved_bids: dict, n_attempts_per_bid: int, log: bool = False):
 
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8))  # Create 2x2 grid of subplots
+    if len(saved_bids) == 0:
+        print('No data found for plotting')
+        return
 
-    for ax, total_data, won_data, title in zip(axs.flat, bids, won_bids, suits):
+    # Create the grid of plots
+    fig, axs = plt.subplots(len(saved_bids), 1)
+    colors = {
+        'Spades': 'black',
+        'Hearts': 'red',
+        'Clubs': 'blue',
+        'Diamonds': '#e75480',
+    }
 
-        # Plot histogram for total bids
-        ax.hist(total_data, bins=bins, alpha=0.6, label='Total Bids')
-        # Plot histogram for won bids on the same axes
-        ax.hist(won_data, bins=bins, alpha=0.6, label='Won Bids')
+    # Flatten all plots into a list
+    all_axes = axs.flat if len(saved_bids) > 1 else [axs]
 
-        ax.set_title(title)
+    # Find the unique bids across all suits for consistent x-axis
+    all_bids = set()
+    for bids in saved_bids.values():
+        all_bids.update(bids)
+    all_bids = sorted(all_bids)
+
+    # Find percentages for each bid
+    suits, bids_by_suit, percentages_by_suit = [], [], []
+    min_bid, max_bid = 1000, 0
+    for suit in saved_bids:
+        if len(saved_bids[suit]) == 0:
+            continue
+
+        unique_bids, counts = np.unique(saved_bids[suit], return_counts=True)
+        suits.append(suit)
+        bids_by_suit.append(unique_bids)
+        percentages_by_suit.append(counts / n_attempts_per_bid)
+        min_bid = min(min_bid, min(unique_bids))
+        max_bid = max(max_bid, max(unique_bids))
+
+    # Find maximum percentage across data
+    max_percentage = 0.0
+    for vals in percentages_by_suit:
+        max_percentage = max(max_percentage, max(vals))
+
+    # Plot the data
+    for ax, suit, bids, win_percents in zip(all_axes, suits, bids_by_suit, percentages_by_suit):
+
+        # Plot the data
+        ax.bar(bids, win_percents, width=0.4, label='Won Bid %', alpha=0.6, color=colors[suit])
+
+        # Customize the chart
+        ax.set_title(suit)
         ax.legend()
+        ax.set_xticks(all_bids)
+        ax.set_xticklabels(all_bids)
+        ax.set_xlim(min_bid - 5, max_bid + 5)
+        ax.set_ylim(0.0, 1.1 * max_percentage)
         if log:
             ax.set_yscale('log')
 
-    plt.tight_layout()  # Adjust layout to not overlap
-    plt.show()
-
-
-def plot_bid_bar_charts(suits: list, bids: list, won_bids: list, log: bool = True):
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8)) # Create 2x2 grid of subplots
-
-    for ax, total_data, won_data, title in zip(axs.flat, bids, won_bids, suits):
-
-        # Count for won bids
-        won_bids, won_counts = np.unique(won_data, return_counts=True)
-        # Count for total bids
-        total_bids, total_counts = np.unique(total_data, return_counts=True)
-
-        # Plot total bids
-        ax.bar(total_bids - 0.2, total_counts, width=0.4, label='Total Bids', alpha=0.6)
-        # Plot won bids
-        ax.bar(won_bids + 0.2, won_counts, width=0.4, label='Won Bids', alpha=0.6)
-
-        ax.set_title(title)
-        ax.legend()
-        if log:
-            ax.set_yscale('log')
-
+    # Show the plots
     plt.tight_layout() # Adjust layout to not overlap
     plt.show()
 
 
+def plot_bid_bar_chart_combined(saved_bids: dict, n_attempts_per_bid: int, log: bool = False):
+    # Initialize plot
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Variables for plotting
+    width = 0.2  # Width of each bar
+    colors = {
+        'Spades': 'black',
+        'Hearts': 'red',
+        'Clubs': 'blue',
+        'Diamonds': '#e75480',
+    }
+
+    # Find the unique bids across all suits for consistent x-axis
+    all_bids = set()
+    for bids in saved_bids.values():
+        all_bids.update(bids)
+    all_bids = sorted(all_bids)
+
+    # Map each unique bid to an x-axis position
+    bid_positions = {bid: i for i, bid in enumerate(all_bids)}
+
+    # Plot data for each suit
+    i = 0
+    for suit in Card.suits:
+        bids = saved_bids.get(suit, [])
+        if len(bids) == 0:
+            continue
+
+        unique_bids, counts = np.unique(bids, return_counts=True)
+        percentages = counts / n_attempts_per_bid
+        positions = [bid_positions[bid] + (i * width) for bid in unique_bids]
+
+        ax.bar(positions, percentages, width=width, label=suit, alpha=0.6, color=colors[suit])
+
+        # Increment chart counter
+        i += 1
+
+    # Customize the chart
+    ax.set_title('Winning Bid Percentages by Suit')
+    ax.legend()
+    ax.set_xticks([pos + width for pos in range(len(all_bids))])
+    ax.set_xticklabels(all_bids)
+    if log:
+        ax.set_yscale('log')
+    else:
+        # Optional: Set a uniform y-axis limit if needed
+        pass
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
+
+    from argparse import ArgumentParser
     from GameLogic.cards import FirehousePinochleDeck
     from GameLogic.players import RandomPinochlePlayer, SimplePinochlePlayer
+
+    parser = ArgumentParser('Run the Monte Carlo bidding simulation')
+    parser.add_argument('--bids', nargs='+', type=int, help='Bids to consider')
+    parser.add_argument('--trials', type=int, default=100, help='Number of trials per suit per bid')
+    parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
+    parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
+    args = parser.parse_args()
 
     deck = FirehousePinochleDeck()
     deck.shuffle()
     hand = Hand(deck.deal()[0])
 
-    n_trials = 3000
+    standard_bids = list(range(60, 100, 5)) + list(range(100, 151, 10))
 
     print('Hand:')
     print(hand)
 
-    min_bid = 0
-    player_type = SimplePinochlePlayer
-    suits = ['Spades', 'Hearts', 'Clubs', 'Diamonds']
-    bids, saved_bids = [], []
-    for suit in suits:
-        these_bids, these_saved_bids = test_bids_monto_carlo(hand, suit, n_trials, player_type, min_bid=min_bid)
-        bids.append(these_bids)
-        saved_bids.append(these_saved_bids)
+    player_types = {
+        'simple': SimplePinochlePlayer,
+        'random': RandomPinochlePlayer,
+    }
 
-        print()
-        print('-----------')
-        print(suit)
-        print(f'Player saved {len(these_saved_bids)} bids out of {n_trials} attemps')
+    player_type = player_types[args.player]
+    other_player_type = player_types[args.opponent]
+    if not args.bids:
+        args.bids = standard_bids
 
-    plot_bid_histograms(suits, bids, saved_bids)
+    '''
+    min_bid, max_bid, bid_increment = 60, 150, 5
+    bids = list(range(min_bid, max_bid + 1, bid_increment))
+    '''
+
+    saved_bids = {}
+    for suit in Card.suits:
+        if not hand.has_marriage(suit):
+            continue
+
+        saved_bids[suit] = test_bids_monto_carlo(
+            hand,
+            suit,
+            args.bids,
+            args.trials,
+            player_type,
+            other_player_type=other_player_type,
+        )
+
+        n_saved = len(saved_bids[suit])
+        n_bids = args.trials * len(args.bids)
+        percent = round(n_saved / n_bids * 100.0)
+        print(f'{suit}: Saved {n_saved} out of {n_bids} bids [{percent}%]')
+
+    plot_bid_bar_charts(saved_bids, args.trials)
+    plot_bid_bar_chart_combined(saved_bids, args.trials)
 
     """
     Notes

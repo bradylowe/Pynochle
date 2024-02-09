@@ -154,7 +154,7 @@ def plot_bar_charts(results: dict, label: str = 'Counts', log: bool = False):
         # Customize the chart
         ax.set_title(suit)
         ax.legend()
-        ax.set_xlim(min_val - 5, max_val + 5)
+        ax.set_xlim(min_val, max_val)
         ax.set_ylim(0.0, 1.1 * max_count)
         if log:
             ax.set_yscale('log')
@@ -268,9 +268,10 @@ if __name__ == "__main__":
         print(f'{suit} counter stats: min={min_counters}, max={max_counters}, mean={mean_counters}, std={std_counters}')
 
     plot_bar_charts(counters, label='Counters')
-    plot_bar_chart_combined(counters, title='Counters pulled per suit')
     #plot_bar_charts(meld, label='Meld')
-    #plot_bar_chart_combined(meld, title='Meld per suit')
+    if len(counters) > 1:
+        plot_bar_chart_combined(counters, title='Counters pulled per suit')
+        #plot_bar_chart_combined(meld, title='Meld per suit')
 
     """
     Notes

@@ -1,63 +1,77 @@
+import os
+import sys
+sys.path.append(os.path.abspath('./'))
+
 import torch
 from torch import nn
-
-from NeuralNetModels.PredictMeld import base_dir
-from NeuralNetModels.PredictMeld.model import MeldPredictorTransformer
 
 
 if __name__ == '__main__':
 
-    import pickle
-    from NeuralNetModels.PredictMeld import train_filename, test_filename
+    from NeuralNetModels.PredictMeld import data_dir, model_dir
+    from NeuralNetModels.PredictMeld.dataset import MeldDataset
+    from NeuralNetModels.PredictMeld.model import MeldPredictorTransformer
 
     import argparse
     parser = argparse.ArgumentParser(description='Train the neural net model')
-    parser.add_argument('--n_data', type=int, default=1000000, help='Load the dataset that contains this many entries')
-    parser.add_argument('--tag', type=str, help='Load the dataset with this tag in its filename')
+    parser.add_argument('--filename', type=str, required=True, help='Output filename of dataset (.pkl)')
     parser.add_argument('--model', type=str, help='Filename of the model to load')
-    parser.add_argument('--model_out', type=str, help='Output filename of the model')
-    parser.add_argument('--n_epochs', type=int, default=100, help='Run through the training set this many times')
+    parser.add_argument('--model_out', type=str, default='transformer_model_state_dict.pth',
+                        help='Output filename of the model')
+
+    parser.add_argument('--n_epochs', type=int, default=10, help='Run through the training set this many times')
+    parser.add_argument('--batch_size', type=int, default=32, help='Examples per batch')
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
-    parser.add_argument('--hidden_dim', type=int, default=256, help='Dimensions of hidden layer')
+
+    parser.add_argument('--n_input', type=int, default=8, help='Input embedding dimension')
+    parser.add_argument('--n_heads', type=int, default=4, help='Number of attention heads')
+    parser.add_argument('--n_hidden', type=int, default=32, help='Hidden layer dimension')
+    parser.add_argument('--n_layers', type=int, default=4, help='Number of transformer layers')
     args = parser.parse_args()
 
     # Load the training dataset
-    with open(train_filename, 'rb') as f:
-        train_dataset = pickle.load(f)
+    if os.path.exists(args.filename):
+        filename = args.filename
+    else:
+        filename = os.path.join(data_dir, args.filename)
+    train_dataset = MeldDataset(filename, args.batch_size)
 
-    # For a DoubleDeck meld model:
-    n_input = 8
-    n_heads = 4
-    n_hidden = 16
-    n_layers = 3
+    # Reference the model directory
+    if args.model and not args.model.startswith(model_dir):
+        args.model = os.path.join(model_dir, args.model)
+    if args.model_out and not args.model_out.startswith(model_dir):
+        args.model_out = os.path.join(model_dir, args.model_out)
 
     # Build the model
-    model = MeldPredictorTransformer(n_input, n_heads, n_hidden, n_layers)
+    model = MeldPredictorTransformer(
+        args.n_input,
+        args.n_heads,
+        args.n_hidden,
+        args.n_layers,
+    )
 
     # Define the loss function and optimizer
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters())
 
     # Enter the training loop
-    num_epochs = 10
-    for epoch in range(num_epochs):
-        for hand, meld_values in train_dataset:
-            hand = torch.tensor(hand, dtype=torch.long).unsqueeze(0)  # Add batch dimension
-            meld_values_target = torch.tensor(meld_values, dtype=torch.float).unsqueeze(0)  # Add batch dimension
+    for epoch in range(args.n_epochs):
+        for hands, melds in train_dataset:
+            hands = torch.tensor(hands, dtype=torch.long)
+            melds = torch.tensor(melds, dtype=torch.float)
 
             # Forward pass
-            predictions = model(hand)
-            loss = loss_fn(predictions, meld_values_target)
+            predictions = model(hands)
+            loss = loss_fn(predictions, melds)
 
             # Backward and optimize
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item()}')
-
-    # Save the model
-    torch.save(model.state_dict(), 'transformer_model_state_dict.pth')
+        # Save the model
+        torch.save(model.state_dict(), args.model_out.replace('.pth', f'_{epoch}.pth'))
+        print(f'Epoch [{epoch + 1}/{args.n_epochs}], Loss: {loss.item()}')
 
     '''
     # Load the testing dataset

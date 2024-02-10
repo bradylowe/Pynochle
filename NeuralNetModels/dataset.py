@@ -61,9 +61,7 @@ class DatasetIterator:
     def __next__(self):
         length = len(self._inputs)
         if self._index < length:
-            end = self._index + self._batch_size
-            if end > length:
-                end = length
+            end = min(length, self._index + self._batch_size)
             inputs = self._inputs[self._index:end]
             outputs = self._outputs[self._index:end]
             self._index = end

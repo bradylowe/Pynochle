@@ -12,7 +12,7 @@ class MeldPredictorTransformer(nn.Module):
 
     def __init__(self, n_input, n_heads, n_hidden, n_layers, dropout=0.5):
         super(MeldPredictorTransformer, self).__init__()
-        self.pos_encoder = PositionalEncoding(n_input, dropout)
+        #self.pos_encoder = PositionalEncoding(n_input, dropout)
         encoder_layers = nn.TransformerEncoderLayer(n_input, n_heads, n_hidden, dropout)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, n_layers)
         self.encoder = nn.Embedding(self.n_tokens, n_input)

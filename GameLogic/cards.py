@@ -149,6 +149,7 @@ class PartialDeck:
 class Deck(PartialDeck):
 
     values = Card.values
+    cards_per_hand = 0
 
     def __init__(self):
         super().__init__(self.build_deck())
@@ -162,8 +163,10 @@ class Deck(PartialDeck):
     def build_deck(self):
         return [Card(s, v) for s, v in product(Card.suits, Card.values)]
 
-    def deal(self):
-        pass
+    def deal_hand(self) -> List[Card]:
+        cards = self.cards[:self.cards_per_hand]
+        self.cards = self.cards[self.cards_per_hand:]
+        return cards
 
 
 class PinochleDeck(Deck):
@@ -186,11 +189,6 @@ class PinochleDeck(Deck):
     def build_deck(self):
         Card.values = self.values
         return self.card_instances * Deck.build_deck(self)
-
-    def deal_hand(self) -> List[Card]:
-        cards = self.cards[:self.cards_per_hand]
-        self.cards = self.cards[self.cards_per_hand:]
-        return cards
 
     @staticmethod
     def get_counters(cards):

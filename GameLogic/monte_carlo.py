@@ -208,6 +208,86 @@ def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: 
     plt.show()
 
 
+def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins: int = 30, log: bool = False):
+    # Initialize plot
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Variables for plotting
+    colors = {
+        'Spades': 'black',
+        'Hearts': 'red',
+        'Clubs': 'blue',
+        'Diamonds': '#b72450',
+    }
+
+    # Assuming the range and distribution of your data are known, adjust bins accordingly
+    bins = np.linspace(min(min(results.values())), max(max(results.values())), bins)
+
+    # Plot data for each suit
+    for suit, color in colors.items():
+        vals = results.get(suit, [])
+        if len(vals) == 0:
+            continue
+
+        ax.hist(vals, bins=bins, label=suit, alpha=0.6, color=color, edgecolor='black')
+
+    # Customize the chart
+    ax.set_title(title)
+    ax.legend()
+    if log:
+        ax.set_yscale('log')
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
+
+def compare_players(
+    players: List[PinochlePlayer],
+    game_type: type = Pinochle,
+    n_trials: int = 100,
+):
+    game = game_type(players=players)
+    pass
+
+
+def estimate_suit_power(
+    suit: str,
+    hand: Hand,
+    n_trials: int = 100,
+    player_type: type = RandomPinochlePlayer,
+) -> float:
+
+    # Check for marriage in trump
+    if not hand.has_marriage(suit):
+        return 0.0
+
+    pass
+
+
+def hand_power_distribution(
+    n_trials: int = 1000,
+    deck_type: type = FirehousePinochleDeck,
+):
+    powers = {suit: [None] * n_trials for suit in Card.suits}
+    for idx in range(n_trials):
+        hand = deck_type.get_random_hand()
+        meld = Meld(hand)
+        for suit in Card.suits:
+            powers[suit][idx] = meld.power[suit]
+
+    plot_histogram_combined(powers, title='Suit Power')
+
+
+def choose_next_card(
+    hand: Hand,
+    game_state: dict,
+    player_type: type = SimplePinochlePlayer,
+    opponent_type: type = SimplePinochlePlayer,
+) -> dict:
+    pass
+
+
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
@@ -259,6 +339,8 @@ if __name__ == "__main__":
     #plot_bar_charts(meld, label='Meld')
     if len(counters) > 1:
         plot_bar_chart_combined(counters, title='Counters pulled per suit')
+        plot_histogram_combined(counters, title='Counters pulled per suit', bins=50)
+        plot_histogram_combined(meld, title='Meld per suit', bins=50)
         #plot_bar_chart_combined(meld, title='Meld per suit')
 
     """

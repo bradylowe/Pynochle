@@ -208,7 +208,7 @@ def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: 
     plt.show()
 
 
-def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins: int = 30, log: bool = False):
+def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins: int = 35, log: bool = False):
     # Initialize plot
     fig, ax = plt.subplots(figsize=(10, 8))
 
@@ -265,18 +265,62 @@ def estimate_suit_power(
     pass
 
 
-def hand_power_distribution(
+def power_rank_meld_distributions(
     n_trials: int = 1000,
     deck_type: type = FirehousePinochleDeck,
 ):
-    powers = {suit: [None] * n_trials for suit in Card.suits}
-    for idx in range(n_trials):
+    """
+    Plot a distribution of the power, rank, and meld of
+    many random hands and return the values
+
+    Generate ``n_trials`` random hands and calculate the
+    power, rank, and meld of each suit for each hand.
+    Store all of these values in 3 lists, and then bin
+    them into histograms and plot them.
+
+    Parameters
+    ----------
+    n_trials: int
+        Number of random hands to generate
+    deck_type: type
+        Type of :class:`PinochleDeck` to use. Options are
+        :class:`PinochleDeck`,
+        :class:`DoublePinochleDeck`, and
+        :class:`FirehousePinochleDeck`.
+        The default is :class:`FirehousePinochleDeck`.
+
+    Returns
+    -------
+    list
+        List of all power values seen
+    list
+        List of all meld values seen
+    list
+        List of all rank values seen
+
+    Notes
+    -----
+    The plot will show all the data in Spades because the
+    plotting function is expecting to plot a dictionary
+    of suits, and we are flattening all the data out into
+    a single suit because their distributions will not vary.
+    """
+    powers = [None] * n_trials * 4
+    melds = [None] * n_trials * 4
+    ranks = [None] * n_trials * 4
+    for i in range(0, n_trials * 4, 4):
         hand = deck_type.get_random_hand()
         meld = Meld(hand)
-        for suit in Card.suits:
-            powers[suit][idx] = meld.power[suit]
+        for j, suit in enumerate(Card.suits):
+            powers[i + j] = meld.power[suit]
+            melds[i + j] = meld.total_meld_given_trump[suit]
+            ranks[i + j] = meld.rank[suit]
 
-    plot_histogram_combined(powers, title='Suit Power')
+    plot_histogram_combined({'Spades': powers}, title='Suit Power')
+    plot_histogram_combined({'Spades': melds}, title='Suit Meld')
+    plot_histogram_combined({'Spades': ranks}, title='Suit Rank')
+
+    return powers, melds, ranks
 
 
 def choose_next_card(
@@ -296,6 +340,9 @@ if __name__ == "__main__":
     parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
     parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
     args = parser.parse_args()
+
+    power_rank_meld_distributions(args.trials)
+    exit()
 
     hand = FirehousePinochleDeck.get_random_hand()
 
@@ -339,8 +386,8 @@ if __name__ == "__main__":
     #plot_bar_charts(meld, label='Meld')
     if len(counters) > 1:
         plot_bar_chart_combined(counters, title='Counters pulled per suit')
-        plot_histogram_combined(counters, title='Counters pulled per suit', bins=50)
-        plot_histogram_combined(meld, title='Meld per suit', bins=50)
+        plot_histogram_combined(counters, title='Counters pulled per suit')
+        #plot_histogram_combined(meld, title='Meld per suit')
         #plot_bar_chart_combined(meld, title='Meld per suit')
 
     """

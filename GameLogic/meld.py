@@ -110,8 +110,15 @@ class Meld:
         additional_trump_meld = self.marriage_melds[suit] + self.family_melds[suit] + self.nines_meld[suit]
         return self.meld_without_trump + additional_trump_meld
 
-    def calculate_suit_power(self, suit):
-        return sum([idx * idx * self.counts[suit][Card.values[idx]] for idx in range(len(Card.values))])
+    def calculate_suit_power(self, suit: str) -> int:
+        if not self.hand:
+            return 0
+
+        n_suit = len(self.hand.sorted_by_suit[suit])
+        return n_suit * sum([
+            idx * idx * self.counts[suit][Card.values[idx]]
+            for idx in range(len(Card.values))
+        ])
 
     def calculate_suit_rank(self, suit):
         # Cannot bid on suit without marriage
@@ -139,11 +146,7 @@ if __name__ == "__main__":
 
     from GameLogic.cards import DoublePinochleDeck, Hand
 
-    deck = DoublePinochleDeck()
-    deck.shuffle()
-    hands = deck.deal()
-
-    hand = Hand(hands[0])
+    hand = DoublePinochleDeck.get_random_hand()
     print(hand)
 
     meld = Meld(hand)

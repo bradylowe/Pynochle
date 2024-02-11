@@ -48,6 +48,13 @@ class Pinochle:
         self._logging = logging
         self._state_log = []
 
+        # Simulation parameters
+        self.shuffle = True
+        self.preset_bid = None
+        self.preset_bidder = None
+        self.preset_trump = None
+        self.preset_player_hands = {}
+
         # Game information
         self.deck = None
         self.players = []
@@ -221,19 +228,30 @@ class Pinochle:
     def set_include_partners_meld(self, value):
         self.partner_gets_points = value
 
-    def deal(self):
+    def _deal_cards(self):
 
-        self.deck = self.deck_type()
-        if self.shuffle:
-            self.deck.shuffle()
-        self._deal_hands_to_players()
-        self.show_human_hand_and_meld()
-        self.log_state('CARDS DELT')
+        # Deal out pre-determined hands
+        if self.preset_player_hands:
+            for player, hand in self.preset_player_hands.items():
+                player.take_cards(hand.cards)
+                self.deck.discard_many(hand.cards)
 
-    def _deal_hands_to_players(self):
+        # Deal remainder of hands
         for player in self.current_players:
             if not player.hand:
                 player.take_cards(self.deck.deal_hand())
+
+    def deal(self):
+
+        # Initialize and shuffle deck
+        self.deck = self.deck_type()
+        if self.shuffle:
+            self.deck.shuffle()
+
+        # Deal, print and log
+        self._deal_cards()
+        self.show_human_hand_and_meld()
+        self.log_state('CARDS DELT')
 
     def find_human_player(self):
         for player in self.players:
@@ -291,11 +309,19 @@ class Pinochle:
             player.reset_hand_state()
 
     def bidding_process(self):
+
         # If no one bids, then the bid gets dropped on the last bidder
         start_bid_amt = self.minimum_bid_amt - self.bid_increment_amt
         self.high_bid = start_bid_amt
         self.high_bidder = self.current_players[-1]
         passed = {player: False for player in self.current_players}
+
+        # Allow pre-determined bidding outcome (for simulations)
+        if self.preset_bidder:
+            self.high_bidder = self.preset_bidder
+            if self.preset_bid:
+                self.high_bid = self.preset_bid
+            passed = {key: True for key in passed}
 
         # Everyone keeps bidding until everyone passes except one person
         idx = 0
@@ -308,14 +334,15 @@ class Pinochle:
 
             idx = (idx + 1) % n_players
 
-        # Check to see if the bid was dropped
+        # Check to see if the bid was dropped or taken
         if self.high_bid == start_bid_amt:
             self.high_bid = self.dropped_bid_amt
             self.dropped_bid = True
-            self.log_state(f'BID DROPPED ON PLAYER {self.high_bidder.index}')
-            self.print(f'The bid was dropped on {self.high_bidder}')
-
-        self.print(self.high_bidder, 'took the bid at', self.high_bid)
+            self.log_state(f'BID DROPPED ON PLAYER {self.high_bidder.index} AT {self.high_bid}')
+            self.print(f'The bid was dropped on {self.high_bidder} at {self.high_bid}')
+        else:
+            self.log_state(f'PLAYER {self.high_bidder.index} TOOK BID AT {self.high_bid}')
+            self.print(f'{self.high_bidder} took the bid at {self.high_bid}')
 
     def player_bids(self, player: PinochlePlayer, player_has_passed: dict):
 
@@ -349,7 +376,16 @@ class Pinochle:
         self.current_players = [self.current_players[(lead_idx + i) % n] for i in range(n)]
         leader.is_high_bidder = True
 
-        self.print(str(self.current_players[0]), 'is leading')
+        if self.human_player:
+            if self.human_player.partner is self.current_players[0]:
+                position = 'partner'
+            elif self.human_player is self.current_players[0]:
+                position = 'you'
+            else:
+                position = 'opponent'
+
+            self.print(f'{self.current_players[0]} ({position}) is leading')
+
         self.log_state(f'PLAYER {leader.index} IS LEADING', save_state=False)
 
     def set_partners(self):
@@ -375,16 +411,16 @@ class Pinochle:
         self.log_state('SET POSITION')
 
     def call_trump(self):
-        self.log_state(f'WAITING ON PLAYER {self.high_bidder.index} TO CALL TRUMP', save_state=False)
-        self.trump = self.high_bidder.choose_trump()
+        if self.preset_trump:
+            self.trump = self.preset_trump
+        else:
+            self.log_state(f'WAITING ON PLAYER {self.high_bidder.index} TO CALL TRUMP', save_state=False)
+            self.trump = self.high_bidder.choose_trump()
+
         self.print(f'Trump is {self.trump}')
         self.log_state('CALL TRUMP')
 
     def play_next_card(self, player: PinochlePlayer):
-
-        msg = f'High bidder: {self.high_bidder}\n' \
-              f'Trump: {self.trump}'
-        #self.print(msg)
 
         self.log_state(f'WAITING ON PLAYER {player.index} TO PLAY CARD', save_state=False)
         card = player.play_card(self.trick)
@@ -594,13 +630,29 @@ class FirehousePinochle(DoubleDeckPinochle):
     def __init__(self, players=None, printing=False, logging=False):
         DoubleDeckPinochle.__init__(self, players, printing=printing, logging=logging)
         self.kitty = Kitty()
+        self.preset_kitty_hand = None
 
-    def _deal_hands_to_players(self):
-        for player in self.current_players:
-            if not player.hand:
-                player.take_cards(self.deck.deal_hand())
+    def get_state(self):
+        return {
+            **super().get_state(),
+            'kitty': self.kitty.get_state(),
+        }
 
-        self.kitty.take_cards(self.deck.deal_kitty())
+    def get_shared_state(self):
+        state = self.get_state()
+        state['players'] = [p.get_shared_state() for p in self.players]
+        state['kitty'] = self.kitty.get_shared_state()
+        return state
+
+    def _deal_cards(self):
+        super()._deal_cards()
+
+        # Deal cards to kitty
+        if self.preset_kitty_hand:
+            self.kitty.take_cards(self.preset_kitty_hand.cards)
+            self.deck.discard_many(self.kitty.hand.cards)
+        else:
+            self.kitty.take_cards(self.deck.deal_kitty())
 
     def set_partners(self):
         self.high_bidder.partner = self.kitty

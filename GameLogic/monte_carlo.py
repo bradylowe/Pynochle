@@ -2,14 +2,29 @@ import os
 import sys
 sys.path.append(os.path.abspath('./'))
 
-from typing import Optional
+from typing import Optional, List
 import numpy as np
 
 import matplotlib.pyplot as plt
 
-from GameLogic.games import FirehousePinochle
-from GameLogic.cards import Card, Hand
-from GameLogic.players import PinochlePlayer
+from GameLogic.games import (
+    Pinochle,
+    DoubleDeckPinochle,
+    FirehousePinochle,
+)
+from GameLogic.cards import (
+    Card,
+    Hand,
+    PinochleDeck,
+    DoublePinochleDeck,
+    FirehousePinochleDeck,
+)
+from GameLogic.players import (
+    PinochlePlayer,
+    RandomPinochlePlayer,
+    SimplePinochlePlayer,
+)
+from GameLogic.meld import Meld
 
 
 def test_hand_monto_carlo(
@@ -52,12 +67,13 @@ def test_hand_monto_carlo(
         List of bid amounts where the player saved the bid
     """
 
-    # Initialize the output lists
-    counters, meld = [], []
-
     # Check for valid hand for bidding
     if not hand.has_marriage(trump):
-        return counters, meld
+        return [], []
+
+    # Initialize the output lists
+    counters = [None] * n_trials
+    meld = [None] * n_trials
 
     # Set up players
     if other_player_type is None:
@@ -71,42 +87,19 @@ def test_hand_monto_carlo(
     # Create the game
     game = FirehousePinochle(players)
 
-    # Remove the player's cards from the pinochle deck
-    for card in hand.cards:
-        game.deck.discard(card)
+    # Preset the values to stay constant for all trials
+    game.preset_bid = 0
+    game.preset_bidder = player
+    game.preset_trump = trump
+    game.preset_player_hands[player] = hand
 
-    # Start the simulation trials
+    # Play the hands
     for idx in range(n_trials):
+        game.play_hand()
 
-        # Set up the next hand
-        game.start_next_hand()
-        game.update_current_players()
-
-        # Deal the cards to the remaining players
-        # game.deal()
-        game.deck.shuffle()
-        player.take_cards(hand.cards)
-        other_player_1.take_cards(game.deck.cards[0:25])
-        other_player_2.take_cards(game.deck.cards[25:50])
-        game.kitty.take_cards(game.deck.cards[50:55])
-
-        # Calculate a random bid for the main player based on the meld value
-        # game.bidding_process()
-        game.high_bidder = player
-        game.high_bid = 0
-        game.trump = trump
-
-        # Complete the hand
-        game.set_partners()
-        game.set_position()
-        # game.call_trump()
-        game.pass_cards()
-        game.declare_meld()
-        game.play_tricks()
-        game.update_scores()
-
-        counters.append(player.counters(game.last_trick_value))
-        meld.append(player.meld.total_meld_given_trump[trump])
+        # Record the outcome
+        counters[idx] = player.counters(game.last_trick_value)
+        meld[idx] = player.meld.total_meld_given_trump[trump]
 
     return counters, meld
 
@@ -218,18 +211,13 @@ def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: 
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
-    from GameLogic.cards import FirehousePinochleDeck
-    from GameLogic.players import RandomPinochlePlayer, SimplePinochlePlayer
-
     parser = ArgumentParser('Run the Monte Carlo bidding simulation')
     parser.add_argument('--trials', type=int, default=1000, help='Number of trials per suit per bid')
     parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
     parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
     args = parser.parse_args()
 
-    deck = FirehousePinochleDeck()
-    deck.shuffle()
-    hand = Hand(deck.deal()[0])
+    hand = FirehousePinochleDeck.get_random_hand()
 
     print('Hand:')
     print(hand)

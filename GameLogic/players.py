@@ -118,7 +118,7 @@ class PinochlePlayer:
         return self.user_name or self.name
 
     def __bool__(self):
-        return bool(self.name)
+        return True
 
 
 class RandomPinochlePlayer(PinochlePlayer):

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List
 import copy
 import numpy as np
 from itertools import product
@@ -97,6 +97,10 @@ class PartialDeck:
     def discard(self, card: Card):
         self.cards.remove(card)
 
+    def discard_many(self, cards: Iterable[Card]):
+        for card in cards:
+            self.discard(card)
+
     def shuffle(self):
         np.random.shuffle(self.cards)
 
@@ -167,6 +171,7 @@ class PinochleDeck(Deck):
     n_players = 4
     values = ['9', 'J', 'Q', 'K', '10', 'A']
     card_instances = 2
+    cards_per_hand = 12
 
     def __init__(self):
         Card.values = self.values
@@ -182,8 +187,10 @@ class PinochleDeck(Deck):
         Card.values = self.values
         return self.card_instances * Deck.build_deck(self)
 
-    def deal(self):
-        return self.cards[0:12], self.cards[12:24], self.cards[24:36], self.cards[36:48]
+    def deal_hand(self) -> List[Card]:
+        cards = self.cards[:self.cards_per_hand]
+        self.cards = self.cards[self.cards_per_hand:]
+        return cards
 
     @staticmethod
     def get_counters(cards):
@@ -193,28 +200,36 @@ class PinochleDeck(Deck):
     def get_non_counters(cards):
         return [card for card in cards if not card.is_counter]
 
+    @classmethod
+    def get_random_hand(cls):
+        deck = cls()
+        deck.shuffle()
+        return Hand(deck.deal_hand())
+
 
 class DoublePinochleDeck(PinochleDeck):
 
     values = ['J', 'Q', 'K', '10', 'A']
     card_instances = 4
+    cards_per_hand = 20
 
     def __init__(self):
         super().__init__()
-
-    def deal(self):
-        return self.cards[0:20], self.cards[20:40], self.cards[40:60], self.cards[60:80]
 
 
 class FirehousePinochleDeck(DoublePinochleDeck):
 
     n_players = 3
+    cards_per_hand = 25
+    cards_in_kitty = 5
 
     def __init__(self):
         super().__init__()
 
-    def deal(self):
-        return self.cards[0:25], self.cards[25:50], self.cards[50:75], self.cards[75:80]
+    def deal_kitty(self) -> List[Card]:
+        cards = self.cards[:self.cards_in_kitty]
+        self.cards = self.cards[self.cards_in_kitty:]
+        return cards
 
 
 class Hand(PartialDeck):

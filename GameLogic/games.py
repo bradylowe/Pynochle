@@ -49,7 +49,7 @@ class Pinochle:
         self._state_log = []
 
         # Game information
-        self.deck = self.deck_type()
+        self.deck = None
         self.players = []
         self.set_players(players)
         self.human_player = self.find_human_player()
@@ -72,7 +72,7 @@ class Pinochle:
         self.trick = None
         self.trick_winner = None
         self.tricks_played = []
-        self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
+        self.remaining_cards = {suit: {val: self.deck_type.card_instances for val in Card.values} for suit in Card.suits}
 
         # Per-player hand information
         self.bids = {p: None for p in self.players}
@@ -129,7 +129,7 @@ class Pinochle:
         self.trick = None
         self.trick_winner = None
         self.tricks_played = []
-        self.remaining_cards = {suit: {val: self.deck.card_instances for val in Card.values} for suit in Card.suits}
+        self.remaining_cards = {suit: {val: self.deck_type.card_instances for val in Card.values} for suit in Card.suits}
 
         # Per-player hand information
         self.bids = {p: None for p in self.players}
@@ -160,7 +160,6 @@ class Pinochle:
             **self.get_settings_state(),
 
             'game_id': self.game_id,
-            #'deck': self.deck.get_state(),
             'players': [p.get_state() for p in self.players],
             'human_player': None if self.human_player is None else self.human_player.index,
             'hand_count': self.hand_count,
@@ -222,19 +221,19 @@ class Pinochle:
     def set_include_partners_meld(self, value):
         self.partner_gets_points = value
 
-    def deal(self, shuffle=True):
-        if shuffle:
+    def deal(self):
+
+        self.deck = self.deck_type()
+        if self.shuffle:
             self.deck.shuffle()
         self._deal_hands_to_players()
         self.show_human_hand_and_meld()
         self.log_state('CARDS DELT')
 
     def _deal_hands_to_players(self):
-        hands = self.deck.deal()
-        self.current_players[0].take_cards(hands[0])
-        self.current_players[1].take_cards(hands[1])
-        self.current_players[2].take_cards(hands[2])
-        self.current_players[3].take_cards(hands[3])
+        for player in self.current_players:
+            if not player.hand:
+                player.take_cards(self.deck.deal_hand())
 
     def find_human_player(self):
         for player in self.players:
@@ -597,11 +596,11 @@ class FirehousePinochle(DoubleDeckPinochle):
         self.kitty = Kitty()
 
     def _deal_hands_to_players(self):
-        hands = self.deck.deal()
-        self.current_players[0].take_cards(hands[0])
-        self.current_players[1].take_cards(hands[1])
-        self.current_players[2].take_cards(hands[2])
-        self.kitty.take_cards(hands[3])
+        for player in self.current_players:
+            if not player.hand:
+                player.take_cards(self.deck.deal_hand())
+
+        self.kitty.take_cards(self.deck.deal_kitty())
 
     def set_partners(self):
         self.high_bidder.partner = self.kitty

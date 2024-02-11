@@ -628,9 +628,9 @@ class FirehousePinochle(DoubleDeckPinochle):
     n_cards_to_pass = 5
 
     def __init__(self, players=None, printing=False, logging=False):
-        DoubleDeckPinochle.__init__(self, players, printing=printing, logging=logging)
-        self.kitty = Kitty()
         self.preset_kitty_hand = None
+        self.kitty = Kitty()
+        DoubleDeckPinochle.__init__(self, players, printing=printing, logging=logging)
 
     def get_state(self):
         return {

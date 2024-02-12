@@ -1,4 +1,4 @@
-from GameLogic.cards import Card
+from GameLogic.cards import Card, Hand
 from termcolor import colored
 
 import os
@@ -17,19 +17,20 @@ class Meld:
     pinochle_meld_worth = {0: 0, 1: 4, 2: 30, 3: 90, 4: 1000}
     marriage_meld_worth = 2
 
-    def __init__(self, hand, trump=None):
+    def __init__(self, hand: Hand, trump: str = None):
         self.hand = hand
         self.counts = self.count_cards()
-        self.min_counts = self.calculate_min_counts()
+        self.min_counts = self.minimum_value_counts()
 
         # Set the total meld once trump is called
         self.trump = None
         self.final = None
 
         # Meld that does not depend on trump
+        self.cards_used_in_meld = {suit: {value: 0 for value in Card.values} for suit in Card.suits}
         self.marriage_melds = {suit: self.calculate_marriage_meld(suit) for suit in Card.suits}
         self.pinochle_meld = self.calculate_pinochle_meld()
-        self.cards_around_meld = self.calculate_meld_for_aces_kings_queens_jacks()
+        self.cards_around_meld = self.calculate_meld_for_aces_kings_queens_jacks_around()
         self.meld_without_trump = self.calculate_meld_without_trump()
 
         # Meld that depends on trump
@@ -53,6 +54,22 @@ class Meld:
                 best_suit = suit
         return best_suit
 
+    @property
+    def has_double_jacks(self):
+        return self.min_counts['J'] >= 2
+
+    @property
+    def has_double_queens(self):
+        return self.min_counts['Q'] >= 2
+
+    @property
+    def has_double_kings(self):
+        return self.min_counts['K'] >= 2
+
+    @property
+    def has_double_pinochle(self):
+        return self.count_pinochles() >= 2
+
     def set_trump(self, trump):
         """Set the value of the final meld once trump is called"""
         self.trump = trump
@@ -68,7 +85,7 @@ class Meld:
 
         return counts
 
-    def calculate_min_counts(self):
+    def minimum_value_counts(self):
         """Find the min number of Aces, Kings, Queens, etc. in each suit"""
         return {val: min([self.counts[suit][val] for suit in Card.suits])
                 for val in Card.values}
@@ -79,29 +96,52 @@ class Meld:
     def count_families(self, suit):
         return min([self.counts[suit][value] for value in Meld.family])
 
-    def calculate_pinochle_meld(self):
-        pinochle_count = min([self.counts['Spades']['Q'], self.counts['Diamonds']['J']])
-        return Meld.pinochle_meld_worth[pinochle_count]
+    def count_pinochles(self):
+        return min([self.counts['Spades']['Q'], self.counts['Diamonds']['J']])
 
-    def calculate_meld_for_aces_kings_queens_jacks(self):
-        meld = 0
-        for card_value in Meld.card_around_meld_worth:
-            if card_value in Card.values:
-                count = self.min_counts[card_value]
-                if count:
-                    meld += Meld.card_around_meld_worth[card_value] * 10 ** (count - 1)
-        return meld
+    def calculate_pinochle_meld(self):
+        count = self.count_pinochles()
+        self.cards_used_in_meld['Spades']['Q'] = max(count, self.cards_used_in_meld['Spades']['Q'])
+        self.cards_used_in_meld['Diamonds']['J'] = max(count, self.cards_used_in_meld['Diamonds']['J'])
+        return Meld.pinochle_meld_worth[count]
+
+    def calculate_meld_for_aces_kings_queens_jacks_around(self):
+        meld_around = 0
+
+        # Check each value that we can have around (A, K, Q, J)
+        for value in Meld.card_around_meld_worth:
+            if value not in Card.values:
+                continue
+
+            # See if we have one (or more) in each suit
+            if self.min_counts[value]:
+                count = self.min_counts[value]
+                meld_around += Meld.card_around_meld_worth[value] * 10 ** (count - 1)
+
+                # Update the record of cards used in the meld
+                for suit in Card.suits:
+                    self.cards_used_in_meld[suit][value] = max(count, self.cards_used_in_meld[suit][value])
+
+        return meld_around
 
     def calculate_nines_meld(self, suit):
         if '9' not in Card.values:
             return 0
-        return Meld.nine_of_trump_worth * self.counts[suit]['9']
+        count = self.counts[suit]['9']
+        self.cards_used_in_meld[suit]['9'] = max(count, self.cards_used_in_meld[suit]['9'])
+        return count * Meld.nine_of_trump_worth
 
     def calculate_marriage_meld(self, suit):
-        return Meld.marriage_meld_worth * self.count_marriages(suit)
+        count = self.count_marriages(suit)
+        for value in Meld.marriage:
+            self.cards_used_in_meld[suit][value] = max(count, self.cards_used_in_meld[suit][value])
+        return count * Meld.marriage_meld_worth
 
     def calculate_family_meld(self, suit):
-        return Meld.family_meld_worth[self.count_families(suit)]
+        count = self.count_families(suit)
+        for value in Meld.family:
+            self.cards_used_in_meld[suit][value] = max(count, self.cards_used_in_meld[suit][value])
+        return Meld.family_meld_worth[count]
 
     def calculate_meld_without_trump(self):
         return sum(self.marriage_melds.values()) + self.pinochle_meld + self.cards_around_meld

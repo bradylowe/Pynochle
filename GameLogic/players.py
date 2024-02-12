@@ -187,6 +187,82 @@ class SimplePinochlePlayer(RandomPinochlePlayer):
     def choose_trump(self):
         return self.meld.best_ranked_suit
 
+    def _choose_cards_to_pass_as_bidder(self, n: int = 0) -> List[Card]:
+        options = self.hand.copy()
+
+        # Do not discard trump
+        for card in self.hand[self.trump]:
+            options.discard(card)
+
+        # Do not discard aces
+        for card in options:
+            if card.value == 'A':
+                options.discard(card)
+
+        # Do not discard meld
+        n_meld_cards = sum([self.meld.cards_used_in_meld[suit][value] for suit in Card.suits for value in Card.values])
+        discard_some_meld = len(options) - n_meld_cards < n
+
+        def can_discard(card):
+            if card.suit == 'Spades' and card.value == 'Q' and self.meld.has_double_pinochle:
+                return False
+            if card.suit == 'Diamonds' and card.value == 'J' and self.meld.has_double_pinochle:
+                return False
+            if card.value == 'J' and self.meld.has_double_jacks:
+                return False
+            if card.value == 'Q' and self.meld.has_double_queens:
+                return False
+            if card.value == 'K' and self.meld.has_double_kings:
+                return False
+            return True
+
+        options_without_meld = options.copy()
+        for suit in Card.suits:
+            for value in Card.values:
+                for _ in range(self.meld.cards_used_in_meld[suit][value]):
+                    card = Card(suit, value)
+                    if discard_some_meld and can_discard(card):
+                        continue
+                    if card in options_without_meld:
+                        options_without_meld.discard(card)
+
+        if len(options_without_meld) >= n:
+            options = options_without_meld
+        else:
+            print('DAMN! had to discard some significant meld')
+
+        # Discard counters first
+        value_discard_order = [v for v in ('K', '10', '9', 'J', 'Q') if v in Card.values]
+
+        # Try not to discard backup suit
+        backup_suit = self.hand.backup_suit(self.trump)
+
+        # Discard non-backup first
+        discard = []
+        for value in value_discard_order:
+            for suit in [s for s in Card.suits if s != backup_suit]:
+                card = Card(suit, value)
+                if card in options[suit]:
+                    discard.append(card)
+
+        if len(discard) >= n:
+            return discard[:n]
+
+        # Discard backup if necessary
+        for value in value_discard_order:
+            card = Card(backup_suit, value)
+            if card in options[backup_suit]:
+                discard.append(card)
+
+        return discard[:n]
+
+    def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
+        if self.is_high_bidder:
+            return self._choose_cards_to_pass_as_bidder(n)
+        else:
+            return super()._choose_cards_to_pass(n)
+
+
     def should_pay_trick(self, trick):
         if len(trick) == 0:
             return False
@@ -355,4 +431,4 @@ class Kitty(PinochlePlayer):
         pass
 
     def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
-        return self.hand.cards[:n]
+        return self.hand.cards

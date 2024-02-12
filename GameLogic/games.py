@@ -363,6 +363,7 @@ class Pinochle:
             idx = (idx + 1) % n_players
 
         # Check to see if the bid was dropped or taken
+        self.high_bidder.is_high_bidder = True
         if self.high_bid == start_bid_amt:
             self.high_bid = self.dropped_bid_amt
             self.dropped_bid = True

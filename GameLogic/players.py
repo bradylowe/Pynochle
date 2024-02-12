@@ -29,6 +29,7 @@ class PinochlePlayer:
         self.partner = None
         self.trump = None
         self.position = None
+        self.is_high_bidder = False
 
     def add_points(self, points):
         self.score += points
@@ -72,22 +73,17 @@ class PinochlePlayer:
             'took_last_trick': self.took_last_trick,
             'hand': self.hand.get_state(),
             'partner': None if self.partner is None else self.partner.index,
+            'trump': self.trump,
+            'position': self.position,
+            'is_high_bidder': self.is_high_bidder,
         }
 
     def get_shared_state(self):
-        return {
-            'user_name': self.user_name,
-            'score': self.score,
-            'player_type': self.__class__.__name__,
-
-            'index': self.index,
-            'tricks': [t.get_state() for t in self.tricks],
-            'took_last_trick': self.took_last_trick,
-            'meld': self.meld.final,
-            'partner': self.partner.index,
-            'trump': self.trump,
-            'position': self.position,
-        }
+        state = self.get_state()
+        del state['id']
+        del state['balance']
+        del state['hand']
+        return state
 
     def reset_hand_state(self):
         self.tricks = []

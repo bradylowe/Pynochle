@@ -370,6 +370,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser('Run the Monte Carlo bidding simulation')
     parser.add_argument('--compare_players', action='store_true', help='Compare player types based on counters pulled')
+    parser.add_argument('--meld_analysis', action='store_true', help='Analyze power, rank, and meld distributions')
     parser.add_argument('--trials', type=int, default=1000, help='Number of trials per suit per bid')
     parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
     parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
@@ -378,6 +379,11 @@ if __name__ == "__main__":
     # Compare players head-to-head, show results, and exit
     if args.compare_players:
         compare_players(args.trials)
+        exit()
+
+    # Plot power, rank, and meld distributions, then exit
+    if args.meld_analysis:
+        power_rank_meld_distributions(args.trials)
         exit()
 
     hand = FirehousePinochleDeck.get_random_hand()

@@ -57,8 +57,8 @@ class Pinochle:
 
         # Game information
         self.deck = None
-        self.players = []
-        self.set_players(players)
+        self.players = players or []
+        self.initialize_players()
         self.human_player = self.find_human_player()
         self.hand_count = -1
         self.scores = {p.id: p.score for p in self.players}
@@ -78,16 +78,7 @@ class Pinochle:
         # Trick information
         self.trick = None
         self.trick_winner = None
-        self.tricks_played = []
         self.remaining_cards = {suit: {val: self.deck_type.card_instances for val in Card.values} for suit in Card.suits}
-
-        # Per-player hand information
-        self.bids = {p: None for p in self.players}
-        self.melds = {p: None for p in self.players}
-        self.meld_cards = {p: [] for p in self.players}
-        self.tricks_taken = {p: [] for p in self.players}
-        self.has_suit = {p: {suit: True for suit in Card.suits} for p in self.players}
-        self.has_card = {p: {suit: {val: True for val in Card.values} for suit in Card.suits} for p in self.players}
 
         # Log initial state
         self.log_state('INITIALIZE GAME')
@@ -110,8 +101,7 @@ class Pinochle:
             self.play_hand()
         self.log_state('END GAME', save_state=False)
 
-    def set_players(self, players: List[PinochlePlayer]):
-        self.players = players
+    def initialize_players(self):
         for idx, player in enumerate(self.players):
             player.index = idx
 
@@ -135,16 +125,7 @@ class Pinochle:
         # Trick information
         self.trick = None
         self.trick_winner = None
-        self.tricks_played = []
         self.remaining_cards = {suit: {val: self.deck_type.card_instances for val in Card.values} for suit in Card.suits}
-
-        # Per-player hand information
-        self.bids = {p: None for p in self.players}
-        self.melds = {p: None for p in self.players}
-        self.meld_cards = {p: [] for p in self.players}
-        self.tricks_taken = {p: [] for p in self.players}
-        self.has_suit = {p: {suit: True for suit in Card.suits} for p in self.players}
-        self.has_card = {p: {suit: {val: True for val in Card.values} for suit in Card.suits} for p in self.players}
 
         self.print('\nBeginning hand {}'.format(self.hand_count))
         self.log_state(f'START HAND {self.hand_count}')
@@ -167,6 +148,7 @@ class Pinochle:
             **self.get_settings_state(),
 
             'game_id': self.game_id,
+            'game_type': self.__class__.__name__,
             'players': [p.get_state() for p in self.players],
             'human_player': None if self.human_player is None else self.human_player.index,
             'hand_count': self.hand_count,
@@ -184,15 +166,7 @@ class Pinochle:
 
             'trick': None if self.trick is None else self.trick.get_state(),
             'trick_winner': None if self.trick_winner is None else self.trick_winner.index,
-            'tricks_played': [t.get_state() for t in self.tricks_played],
             'remaining_cards': self.remaining_cards,
-
-            'bids': {p.index: self.bids[p] for p in self.players},
-            'melds': {p.index: self.melds[p] for p in self.players},
-            'meld_cards': {p.index: [c.get_state() for c in self.meld_cards[p]] for p in self.players},
-            'tricks_taken': {p.index: [t.get_state() for t in self.tricks_taken[p]] for p in self.players},
-            'has_suit': {p.index: self.has_suit[p] for p in self.players},
-            'has_card': {p.index: self.has_card[p] for p in self.players},
         }
 
     def get_shared_state(self):
@@ -292,7 +266,6 @@ class Pinochle:
     def declare_meld(self):
         for player in self.current_players:
             player.meld.set_trump(self.trump)
-            self.melds[player] = player.meld.final
             # Todo: need to store list of meld cards in state
 
         self.log_state('DECLARE MELD')

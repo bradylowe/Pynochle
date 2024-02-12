@@ -234,6 +234,45 @@ def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins:
     plt.show()
 
 
+def plot_next_card_data(data):
+
+    # Define the suits and card ranks of interest
+    suits = ['Hearts', 'Spades', 'Clubs', 'Diamonds']
+    ranks = ['A', '10', 'K', 'Q', 'J']
+
+    # Initialize a 2x2 subplot grid
+    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Simulation Results by Suit')
+
+    # Flatten the axes for easy iteration
+    axs = axs.flatten()
+
+    # Colors for different ranks (optional, for better visualization)
+    colors = ['red', 'green', 'blue', 'orange', 'purple']
+
+    # Loop over each suit to create a subplot
+    for i, suit in enumerate(suits):
+        ax = axs[i]
+        ax.set_title(f'{suit}')
+
+        # Filter data for the current suit and plot histograms
+        for j, rank in enumerate(ranks):
+            key = f'{rank} of {suit}'
+            if key in data:
+                ax.hist(data[key], bins=15, alpha=0.5, label=key, color=colors[j])
+
+        # Enhance readability
+        ax.legend()
+        ax.set_xlabel('Outcome')
+        ax.set_ylabel('Frequency')
+
+        # Optional: Set the same scale for all subplots for direct comparison
+        # ax.set_ylim([0, max_limit])
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the layout to make room for the main title
+    plt.show()
+
+
 def compare_players(
     n_trials: int = 1000,
 ):
@@ -357,13 +396,86 @@ def power_rank_meld_distributions(
 
 
 def choose_next_card(
-    hand: Hand,
     game_state: dict,
-    player_type: type = SimplePinochlePlayer,
-    opponent_type: type = SimplePinochlePlayer,
+    n_trials: int,
+    plot_results: bool = False,
 ) -> dict:
-    pass
+    """
+    Run many simulations of a given game state starting from some
+    point during the trick taking phase to gain insight into the
+    most advantageous card to play next for the next player
 
+    The simulation results show the total counters pulled at the
+    end of each hand by the current player and their partner.
+
+    A distribution is measured for each possible next legal play
+    for the next player waiting to play a card. After playing the
+    chosen card, all future plays of this player and the other
+    players are made randomly.
+
+    Parameters
+    ----------
+    game_state: dict
+        A dictionary representing the game state
+    n_trials: int
+        Number of trials to run for each possible card play
+    plot_results: bool
+        If True, plot the distributions for each possible play
+
+    Returns
+    -------
+    Dict[Card, dict]
+        Results are returned as a dictionary with the possible
+        plays (cards) as keys in basic string format.
+
+        Each dictionary contains the 'mean' and 'std' of the
+        distribution as well as the distribution data itself
+        in a list called 'counters'.
+    """
+
+    game_state['human_player'] = None
+    for idx in range(len(game_state['players'])):
+        game_state['players'][idx]['player_type'] = RandomPinochlePlayer.__name__
+
+    game = Pinochle.restore_state(game_state)
+    if game.trick is None or game.trick.complete:
+        game.set_up_trick()
+
+    player = game.get_next_player()
+    player_index = player.index
+    unique_legal_plays = set(game.trick.legal_plays(player.hand))
+    counters = {card.to_str(): [None] * n_trials for card in unique_legal_plays}
+
+    for card in unique_legal_plays:
+        for idx in range(n_trials):
+            game = Pinochle.restore_state(game_state)
+
+            if game.trick is None or game.trick.complete:
+                game.set_up_trick()
+            game.play_next_card(card)
+            game.play_cards_in_trick()
+            game.finish_trick()
+
+            game.play_tricks()
+
+            for player in game.current_players:
+                if player.index == player_index:
+                    mine = player.counters(game.last_trick_value)
+                    partners = player.partner.counters(game.last_trick_value)
+                    counters[card.to_str()][idx] = mine + partners
+                    break
+
+    if plot_results:
+        plot_next_card_data(counters)
+
+    results = {}
+    for card in counters:
+        results[card] = {
+            'mean': np.mean(counters[card]),
+            'std': np.std(counters[card]),
+            'counters': counters[card],
+        }
+    return results
 
 if __name__ == "__main__":
 

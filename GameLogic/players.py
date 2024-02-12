@@ -316,6 +316,10 @@ class Kitty(PinochlePlayer):
     def take_cards(self, cards):
         self.hand.add_cards(cards)
 
+    def counters(self, last_trick_value: int) -> int:
+        counters = sum([1 for card in self.hand if card.is_counter])
+        return counters + last_trick_value if self.took_last_trick else counters
+
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         pass
 

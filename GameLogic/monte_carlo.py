@@ -235,26 +235,67 @@ def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins:
 
 
 def compare_players(
-    players: List[PinochlePlayer],
-    game_type: type = Pinochle,
-    n_trials: int = 100,
+    n_trials: int = 1000,
 ):
-    game = game_type(players=players)
-    pass
+    """
+    Compare the performance of all player types against all
+    other player types with many runs on a single, random hand
+    and plot the results
 
+    Parameters
+    ----------
+    n_trials: int
+        Number of trials to run per trump suit, per hand, per
+        pairing of player types
+    """
 
-def estimate_suit_power(
-    suit: str,
-    hand: Hand,
-    n_trials: int = 100,
-    player_type: type = RandomPinochlePlayer,
-) -> float:
+    hand = FirehousePinochleDeck.get_random_hand()
+    print('Hand')
+    print(hand)
 
-    # Check for marriage in trump
-    if not hand.has_marriage(suit):
-        return 0.0
+    player_types = RandomPinochlePlayer, SimplePinochlePlayer
+    for suit in Card.suits:
+        if not hand.has_marriage(suit):
+            continue
 
-    pass
+        results = {
+            (player_type, opponent_type): None
+            for player_type in player_types for opponent_type in player_types
+        }
+
+        for player_type in player_types:
+            for opponent_type in player_types:
+                counters, _ = simulate_full_hand(hand, suit, n_trials, player_type, opponent_type)
+                results[(player_type, opponent_type)] = counters
+
+        # Map names
+        names = {
+            RandomPinochlePlayer: 'Rand',
+            SimplePinochlePlayer: 'Simp',
+        }
+
+        # Plot
+        print()
+        print(suit)
+        fig, axs = plt.subplots(2, 2)
+        all_axes = axs.flat
+        for ax, (player_type, opponent_type), counters in zip(all_axes, results, results.values()):
+
+            # Assuming the range and distribution of your data are known, adjust bins accordingly
+            bins = np.linspace(min(counters), max(counters), 30)
+            ax.hist(counters, bins=bins, label=suit, alpha=0.6, color=suit_colors[suit], edgecolor='black')
+
+            # Customize the chart
+            title = f'{names[player_type]} VS {names[opponent_type]}'
+            ax.set_title(title)
+            ax.legend()
+
+            # Print the stats to console
+            print(f'{title}: mean={np.mean(counters)}, std={np.std(counters)}')
+
+        # Show the plot
+        plt.tight_layout()
+        plt.show()
 
 
 def power_rank_meld_distributions(
@@ -328,13 +369,16 @@ if __name__ == "__main__":
 
     from argparse import ArgumentParser
     parser = ArgumentParser('Run the Monte Carlo bidding simulation')
+    parser.add_argument('--compare_players', action='store_true', help='Compare player types based on counters pulled')
     parser.add_argument('--trials', type=int, default=1000, help='Number of trials per suit per bid')
     parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
     parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
     args = parser.parse_args()
 
-    power_rank_meld_distributions(args.trials)
-    exit()
+    # Compare players head-to-head, show results, and exit
+    if args.compare_players:
+        compare_players(args.trials)
+        exit()
 
     hand = FirehousePinochleDeck.get_random_hand()
 

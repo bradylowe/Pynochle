@@ -343,8 +343,7 @@ class Pinochle:
             self.log_state(f'PLAYER {player.index} PASSED')
 
     def set_lead_player(self):
-        leader = self.trick_winner or self.high_bidder
-        lead_idx = self.current_players.index(leader)
+        lead_idx = self.current_players.index(self.lead_player)
         n = len(self.current_players)
         self.current_players = [self.current_players[(lead_idx + i) % n] for i in range(n)]
 
@@ -358,7 +357,7 @@ class Pinochle:
 
             self.print(f'{self.current_players[0]} ({position}) is leading')
 
-        self.log_state(f'PLAYER {leader.index} IS LEADING', save_state=False)
+        self.log_state(f'PLAYER {self.lead_player.index} IS LEADING', save_state=False)
 
     def set_partners(self):
         self.current_players[0].partner = self.current_players[2]
@@ -392,10 +391,33 @@ class Pinochle:
         self.print(f'Trump is {self.trump}')
         self.log_state('CALL TRUMP')
 
-    def play_next_card(self, player: PinochlePlayer):
+    @property
+    def lead_player(self):
+        return self.trick_winner or self.high_bidder
 
+    def get_next_player(self) -> Optional[PinochlePlayer]:
+        """
+        Return the player that should play the next card
+
+        Returns
+        -------
+        Optional[PinochlePlayer]
+            Player that will play the next card
+        """
+        if self.current_players is None:
+            return
+        elif len(self.trick) == 0:
+            return self.lead_player
+        else:
+            idx = self.trick.card_players.index(self.lead_player) + len(self.trick)
+            return self.current_players[idx % len(self.current_players)]
+
+    def play_next_card(self, card: Card = None):
+
+        player = self.get_next_player()
         self.log_state(f'WAITING ON PLAYER {player.index} TO PLAY CARD', save_state=False)
-        card = player.choose_card_to_play(self.trick)
+        if card is None:
+            card = player.choose_card_to_play(self.trick)
         player.play_card(card)
         self.trick.add_card(card, player)
 
@@ -462,124 +484,27 @@ class Pinochle:
         while self.high_bidder.hand:
             self.play_next_trick()
 
-    def play_next_trick(self):
+    def set_up_trick(self):
         self.set_lead_player()
         self.trick = Trick(self.n_players, self.trump)
-        for player in self.current_players:
-            self.play_next_card(player)
 
+    def play_cards_in_trick(self):
+        while len(self.trick) < len(self.current_players):
+            self.play_next_card()
+
+    def finish_trick(self):
         self.trick_winner = self.trick.winner()
         self.trick_winner.tricks.append(self.trick)
-        self.log_state(f'PLAYER {self.trick_winner.index} TOOK TRICK')
 
         msg = f'{str(self.trick)}\n' \
               f'----------------------------'
         self.print(msg)
+        self.log_state(f'PLAYER {self.trick_winner.index} TOOK TRICK')
 
-    @property
-    def remaining_trump(self):
-        return sum(self.remaining_cards[self.trump].values())
-
-    def player_index(self, player):
-        return self.players.index(player)
-
-    def player_cannot_beat(self, player: PinochlePlayer, card: Card):
-        value_idx = Card.values.index(card.value)
-        for idx in range(value_idx + 1, len(Card.values)):
-            value = Card.values[idx]
-            self.has_card[player][card.suit][value] = False
-
-    def player_does_not_have_suit(self, player: PinochlePlayer, suit: str):
-        self.has_suit[player][suit] = False
-        for value in Card.values:
-            self.has_card[player][suit][value] = False
-
-    @staticmethod
-    def best_card_in_trick(trick, trump) -> Optional[Card]:
-        if not len(trick):
-            return None
-
-        best_card = trick.cards[0]
-        for card in trick.cards[1:]:
-            if card.suit is trump:
-                if best_card.suit is not trump or card > best_card:
-                    best_card = card
-            elif card.suit is best_card.suit and card > best_card:
-                best_card = card
-
-        return best_card
-
-    @staticmethod
-    def card_can_beat_trick(trick: Trick, card: Card, trump: str) -> bool:
-        if not trick.card_to_beat:
-            return True
-        elif card.suit is trump:
-            if trick.card_to_beat.suit is not trump or card > trick.card_to_beat:
-                return True
-        elif card.suit is trick.card_to_beat.suit and card > trick.card_to_beat:
-            return True
-        return False
-
-    @staticmethod
-    def legal_plays(trick: Trick, hand: Hand, trump: str) -> List[Card]:
-
-        # If this is the first card played, any card is legal
-        if len(trick.cards) == 0:
-            return hand.cards
-
-        # Player must follow suit
-        elif hand.has_suit(trick.leading_suit):
-            if trick.trump_played and trump is not trick.leading_suit:
-                return hand[trick.leading_suit]
-            elif hand[trick.leading_suit][0] > trick.card_to_beat:
-                return [card for card in hand[trick.leading_suit] if card > trick.card_to_beat]
-            else:
-                return hand[trick.leading_suit]
-
-        # Player must trump if they cannot follow suit
-        elif hand.has_suit(trump):
-            if trick.trump_played and hand[trump][0] > trick.card_to_beat:
-                return [card for card in hand[trump] if card > trick.card_to_beat]
-            else:
-                return hand[trump]
-
-        # Player cannot trump or follow suit
-        else:
-            return hand.cards
-
-    def player_can_take_trick(self, player: PinochlePlayer) -> bool:
-        legal = self.legal_plays(self.trick, Hand.one_of_each(), self.trump)
-        can_beat = self.card_can_beat_trick(self.trick, legal[0], self.trump)
-
-        if self.has_suit[player][self.trick.leading_suit]:
-            if self.trick.trump_played:
-                return False
-            elif self.trick.card_to_beat.value is 'A':
-                return False
-
-            value = self.trick.card_to_beat.value
-            value_idx = Card.values.index(value)
-            for idx in range(value_idx + 1, len(Card.values)):
-                value = Card.values[idx]
-                if self.has_card[player][self.trick.leading_suit][value]:
-                    return True
-            return False
-
-        elif self.has_suit[player][self.trump]:
-            # Todo: finish this method
-            pass
-
-
-    def likelihood_player_will_take_trick(self, player: PinochlePlayer) -> float:
-        pass
-
-    def player_has_played(self, player: PinochlePlayer) -> bool:
-        return player in self.trick.card_players
-
-    def next_player(self) -> PinochlePlayer:
-        for player in self.current_players:
-            if player not in self.trick.card_players:
-                return player
+    def play_next_trick(self):
+        self.set_up_trick()
+        self.play_cards_in_trick()
+        self.finish_trick()
 
 
 class DoubleDeckPinochle(Pinochle):

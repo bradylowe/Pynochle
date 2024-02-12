@@ -115,123 +115,82 @@ def simulate_full_hand(
     return counters, meld
 
 
-def plot_bar_charts(results: dict, label: str = 'Counts', log: bool = False):
+def plot_data_by_suit(
+    results: dict,
+    title: str = 'Counts',
+    x_min: float = None,
+    x_max: float = None,
+    same_range: bool = False,
+    log: bool = False,
+    combined: bool = False,
+    chart_style: str = 'hist',
+    bins: int = None,
+):
 
-    if len(results) == 0:
-        print('No data found for plotting')
-        return
+    # Check for allowed style
+    allowed_styles = ['hist', 'bar']
+    if chart_style not in allowed_styles:
+        raise ValueError(f'Chart style "{chart_style}" not allowed, must be {allowed_styles}')
 
     # Create the grid of plots
-    fig, axs = plt.subplots(len(results), 1)
-
-    # Flatten all plots into a list
-    all_axes = axs.flat if len(results) > 1 else [axs]
+    if combined:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        all_axes = [ax] * len(results)
+        same_range = False  # This will happen automatically
+    else:
+        fig, axs = plt.subplots(len(results), 1)
+        all_axes = axs.flat if len(results) > 1 else [axs]
 
     # Find the min and max bounds for x-axis and y-axis
     suits, values_by_suit, counts_by_suit = [], [], []
-    min_val, max_val = 10_000, 0
-    max_count = 0
-    for suit in results:
-        if len(results[suit]) == 0:
-            continue
+    y_min, y_max = 0.0, None
+    x_min_calculated, x_max_calculated = 10_000, 0
+    y_max_calculated = 0
+    if same_range:
+        for suit in results:
+            if len(results[suit]) == 0:
+                continue
 
-        unique_vals, counts = np.unique(results[suit], return_counts=True)
-        suits.append(suit)
-        values_by_suit.append(unique_vals)
-        counts_by_suit.append(counts)
-        min_val = min(min_val, min(unique_vals))
-        max_val = max(max_val, max(unique_vals))
-        max_count = max(max_count, max(counts))
+            unique_vals, counts = np.unique(results[suit], return_counts=True)
+            suits.append(suit)
+            values_by_suit.append(unique_vals)
+            counts_by_suit.append(counts)
+            x_min_calculated = min(x_min_calculated, min(unique_vals))
+            x_max_calculated = max(x_max_calculated, max(unique_vals))
+            y_max_calculated = max(y_max_calculated, max(counts))
+
+        # Give buffer for visual appeal
+        if x_min is None:
+            x_min = 0.9 * x_min_calculated
+        if x_max is None:
+            x_max = 1.1 * x_max_calculated
+        if chart_style != 'hist':
+            y_max = 1.1 * y_max_calculated
 
     # Plot the data
-    for ax, suit, val, counts in zip(all_axes, suits, values_by_suit, counts_by_suit):
+    n_suits = len(results)
+    width = 1 / n_suits
+    offsets = [width * (idx - (n_suits - 1) / 2) for idx in range(n_suits)]
+    for ax, suit, offset in zip(all_axes, results, offsets):
 
         # Plot the data
-        ax.bar(val, counts, width=0.4, label=label, alpha=0.6, color=suit_colors[suit])
+        unique_values, counts = np.unique(results[suit], return_counts=True)
+        if chart_style == 'hist':
+            ax.hist(results[suit], bins=bins, label=suit, alpha=0.6, color=suit_colors.get(suit), edgecolor='black')
+        elif chart_style == 'bar':
+            values = unique_values + offset if combined else unique_values
+            ax.bar(values, counts, width=0.4, label=suit, alpha=0.6, color=suit_colors.get(suit))
 
         # Customize the chart
-        ax.set_title(suit)
+        ax.set_title(title)
         ax.legend()
-        ax.set_xlim(min_val, max_val)
-        ax.set_ylim(0.0, 1.1 * max_count)
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
         if log:
             ax.set_yscale('log')
 
     # Show the plots
     plt.tight_layout() # Adjust layout to not overlap
-    plt.show()
-
-
-def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: bool = False):
-
-    # Initialize plot
-    fig, ax = plt.subplots(figsize=(10, 8))
-
-    # Variables for plotting
-    width = 0.2  # Width of each bar
-
-    # Find the unique vals across all suits for consistent x-axis
-    all_vals = set()
-    for vals in results.values():
-        all_vals.update(vals)
-    all_vals = sorted(all_vals)
-
-    # Map each unique val to an x-axis position
-    positions_map = {val: i for i, val in enumerate(all_vals)}
-
-    # Plot data for each suit
-    i = 0
-    for suit in Card.suits:
-        vals = results.get(suit, [])
-        if len(vals) == 0:
-            continue
-
-        unique_vals, counts = np.unique(vals, return_counts=True)
-        positions = [positions_map[val] + (i * width) for val in unique_vals]
-
-        ax.bar(positions, counts, width=width, label=suit, alpha=0.6, color=suit_colors[suit])
-
-        # Increment chart counter
-        i += 1
-
-    # Customize the chart
-    ax.set_title(title)
-    ax.legend()
-    if log:
-        ax.set_yscale('log')
-    else:
-        # Optional: Set a uniform y-axis limit if needed
-        pass
-
-    # Show the plot
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins: int = 35, log: bool = False):
-
-    # Initialize plot
-    fig, ax = plt.subplots(figsize=(10, 8))
-
-    # Assuming the range and distribution of your data are known, adjust bins accordingly
-    bins = np.linspace(min(min(results.values())), max(max(results.values())), bins)
-
-    # Plot data for each suit
-    for suit, color in suit_colors.items():
-        vals = results.get(suit, [])
-        if len(vals) == 0:
-            continue
-
-        ax.hist(vals, bins=bins, label=suit, alpha=0.6, color=color, edgecolor='black')
-
-    # Customize the chart
-    ax.set_title(title)
-    ax.legend()
-    if log:
-        ax.set_yscale('log')
-
-    # Show the plot
-    plt.tight_layout()
     plt.show()
 
 
@@ -389,9 +348,9 @@ def power_rank_meld_distributions(
             melds[i + j] = meld.total_meld_given_trump[suit]
             ranks[i + j] = meld.rank[suit]
 
-    plot_histogram_combined({'Spades': powers}, title='Suit Power')
-    plot_histogram_combined({'Spades': melds}, title='Suit Meld')
-    plot_histogram_combined({'Spades': ranks}, title='Suit Rank')
+    plot_data_by_suit({'Counts': powers}, title='Suit Power')
+    plot_data_by_suit({'Counts': melds}, title='Suit Meld')
+    plot_data_by_suit({'Counts': ranks}, title='Suit Rank')
 
     return powers, melds, ranks
 
@@ -478,6 +437,7 @@ def choose_next_card(
         }
     return results
 
+
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
@@ -550,12 +510,14 @@ if __name__ == "__main__":
 
             print(f'{suit} counter stats: min={min_counters}, max={max_counters}, mean={mean_counters}, std={std_counters}')
 
-        plot_bar_charts(counters, label='Counters')
-        #plot_bar_charts(meld, label='Meld')
-        if len(counters) > 1:
-            plot_bar_chart_combined(counters, title='Counters pulled per suit')
-            plot_histogram_combined(counters, title='Counters pulled per suit')
-            #plot_histogram_combined(meld, title='Meld per suit')
-            #plot_bar_chart_combined(meld, title='Meld per suit')
+        # Plot the data
+        if len(counters):
+            plot_data_by_suit(counters, title='Counters', x_min=0, x_max=50, chart_style='bar')
+            plot_data_by_suit(counters, title='Counters', x_min=0, x_max=50)
+            plot_data_by_suit(meld, title='Meld')
+            if len(counters) > 1:
+                plot_data_by_suit(counters, title='Counters', x_min=0, x_max=50, combined=True, chart_style='bar')
+                plot_data_by_suit(counters, title='Counters', x_min=0, x_max=50, combined=True)
+                plot_data_by_suit(meld, title='Meld', combined=True)
 
         exit()

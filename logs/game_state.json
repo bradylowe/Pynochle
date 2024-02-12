@@ -1,0 +1,847 @@
+{
+  "last_trick_value": 2,
+  "deck_type": "FirehousePinochleDeck",
+  "dropped_bid_amt": 50,
+  "minimum_bid_amt": 60,
+  "bid_increment_amt": 10,
+  "n_players": 3,
+  "n_cards_to_pass": 5,
+  "winning_score": 350,
+  "partner_gets_points": false,
+  "game_id": "1b14f422-a9d3-426e-bd7c-cc8c7d7afa07",
+  "game_type": "FirehousePinochle",
+  "players": [
+    {
+      "id": "a88bc969-0a65-4541-b2f5-ad03e4974444",
+      "name": "Brady",
+      "balance": 0,
+      "user_name": "Brady",
+      "score": 0,
+      "player_type": "HumanPinochlePlayer",
+      "index": 0,
+      "tricks": [
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Clubs",
+              "value": "Q"
+            },
+            {
+              "suit": "Clubs",
+              "value": "A"
+            },
+            {
+              "suit": "Clubs",
+              "value": "10"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Clubs",
+            "value": "A"
+          },
+          "trump_played": false,
+          "card_players": [
+            2,
+            0,
+            1
+          ],
+          "winner": 0,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Spades",
+              "value": "Q"
+            },
+            {
+              "suit": "Hearts",
+              "value": "J"
+            },
+            {
+              "suit": "Spades",
+              "value": "10"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Hearts",
+            "value": "J"
+          },
+          "trump_played": true,
+          "card_players": [
+            2,
+            0,
+            1
+          ],
+          "winner": 0,
+          "complete": true
+        }
+      ],
+      "took_last_trick": null,
+      "hand": {
+        "deck_type": "Hand",
+        "cards": [
+          {
+            "suit": "Diamonds",
+            "value": "K"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "K"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "J"
+          },
+          {
+            "suit": "Clubs",
+            "value": "J"
+          },
+          {
+            "suit": "Clubs",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "Q"
+          },
+          {
+            "suit": "Clubs",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "Q"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "Q"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "K"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "J"
+          },
+          {
+            "suit": "Clubs",
+            "value": "10"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "J"
+          }
+        ]
+      },
+      "is_high_bidder": true,
+      "partner": 1
+    },
+    {
+      "id": "dba69213-2ae4-4a8b-adb5-4e6b44464faa",
+      "name": "Bob",
+      "balance": 100,
+      "user_name": "Bob",
+      "score": 0,
+      "player_type": "SimplePinochlePlayer",
+      "index": 1,
+      "tricks": [
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Spades",
+              "value": "Q"
+            },
+            {
+              "suit": "Spades",
+              "value": "K"
+            },
+            {
+              "suit": "Spades",
+              "value": "10"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Spades",
+            "value": "10"
+          },
+          "trump_played": false,
+          "card_players": [
+            2,
+            0,
+            1
+          ],
+          "winner": 1,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Spades",
+              "value": "A"
+            },
+            {
+              "suit": "Spades",
+              "value": "Q"
+            },
+            {
+              "suit": "Spades",
+              "value": "Q"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Spades",
+            "value": "A"
+          },
+          "trump_played": false,
+          "card_players": [
+            1,
+            2,
+            0
+          ],
+          "winner": 1,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Hearts",
+              "value": "Q"
+            },
+            {
+              "suit": "Hearts",
+              "value": "10"
+            },
+            {
+              "suit": "Hearts",
+              "value": "A"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Hearts",
+            "value": "A"
+          },
+          "trump_played": true,
+          "card_players": [
+            2,
+            0,
+            1
+          ],
+          "winner": 1,
+          "complete": true
+        }
+      ],
+      "took_last_trick": null,
+      "hand": {
+        "deck_type": "Hand",
+        "cards": [
+          {
+            "suit": "Spades",
+            "value": "J"
+          },
+          {
+            "suit": "Clubs",
+            "value": "J"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "10"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "A"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "A"
+          },
+          {
+            "suit": "Spades",
+            "value": "A"
+          },
+          {
+            "suit": "Hearts",
+            "value": "10"
+          },
+          {
+            "suit": "Spades",
+            "value": "A"
+          },
+          {
+            "suit": "Hearts",
+            "value": "K"
+          },
+          {
+            "suit": "Spades",
+            "value": "J"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "J"
+          },
+          {
+            "suit": "Hearts",
+            "value": "A"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "Q"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "J"
+          },
+          {
+            "suit": "Hearts",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "J"
+          }
+        ]
+      },
+      "is_high_bidder": true,
+      "partner": 0
+    },
+    {
+      "id": "cb902bcd-fcb6-4208-8d7f-cde87cbcd180",
+      "name": "Charlie",
+      "balance": 100,
+      "user_name": "Charlie",
+      "score": 0,
+      "player_type": "SimplePinochlePlayer",
+      "index": 2,
+      "tricks": [
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Clubs",
+              "value": "Q"
+            },
+            {
+              "suit": "Clubs",
+              "value": "A"
+            },
+            {
+              "suit": "Clubs",
+              "value": "A"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Clubs",
+            "value": "A"
+          },
+          "trump_played": false,
+          "card_players": [
+            1,
+            2,
+            0
+          ],
+          "winner": 2,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Spades",
+              "value": "J"
+            },
+            {
+              "suit": "Spades",
+              "value": "K"
+            },
+            {
+              "suit": "Spades",
+              "value": "A"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Spades",
+            "value": "A"
+          },
+          "trump_played": false,
+          "card_players": [
+            0,
+            1,
+            2
+          ],
+          "winner": 2,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Hearts",
+              "value": "Q"
+            },
+            {
+              "suit": "Hearts",
+              "value": "A"
+            },
+            {
+              "suit": "Hearts",
+              "value": "Q"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Hearts",
+            "value": "A"
+          },
+          "trump_played": true,
+          "card_players": [
+            1,
+            2,
+            0
+          ],
+          "winner": 2,
+          "complete": true
+        },
+        {
+          "n_players": 3,
+          "trump": "Hearts",
+          "cards": [
+            {
+              "suit": "Hearts",
+              "value": "J"
+            },
+            {
+              "suit": "Hearts",
+              "value": "K"
+            },
+            {
+              "suit": "Hearts",
+              "value": "A"
+            }
+          ],
+          "card_to_beat": {
+            "suit": "Hearts",
+            "value": "A"
+          },
+          "trump_played": true,
+          "card_players": [
+            0,
+            1,
+            2
+          ],
+          "winner": 2,
+          "complete": true
+        }
+      ],
+      "took_last_trick": null,
+      "hand": {
+        "deck_type": "Hand",
+        "cards": [
+          {
+            "suit": "Diamonds",
+            "value": "10"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "10"
+          },
+          {
+            "suit": "Clubs",
+            "value": "10"
+          },
+          {
+            "suit": "Hearts",
+            "value": "K"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "A"
+          },
+          {
+            "suit": "Diamonds",
+            "value": "A"
+          },
+          {
+            "suit": "Clubs",
+            "value": "A"
+          },
+          {
+            "suit": "Hearts",
+            "value": "J"
+          },
+          {
+            "suit": "Spades",
+            "value": "J"
+          },
+          {
+            "suit": "Clubs",
+            "value": "10"
+          },
+          {
+            "suit": "Spades",
+            "value": "10"
+          },
+          {
+            "suit": "Spades",
+            "value": "K"
+          },
+          {
+            "suit": "Clubs",
+            "value": "K"
+          },
+          {
+            "suit": "Spades",
+            "value": "10"
+          },
+          {
+            "suit": "Hearts",
+            "value": "Q"
+          }
+        ]
+      },
+      "is_high_bidder": true,
+      "partner": -1
+    }
+  ],
+  "human_player": 0,
+  "hand_count": 0,
+  "scores": {
+    "a88bc969-0a65-4541-b2f5-ad03e4974444": 0,
+    "dba69213-2ae4-4a8b-adb5-4e6b44464faa": 0,
+    "cb902bcd-fcb6-4208-8d7f-cde87cbcd180": 0
+  },
+  "current_players": [
+    2,
+    0,
+    1
+  ],
+  "cards_played": [
+    [
+      {
+        "suit": "Spades",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "K"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "10"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "A"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "Q"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "Q"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "A"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "A"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "A"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Clubs",
+        "value": "10"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "J"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "K"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "A"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "10"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "A"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "Q"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "A"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "Q"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "J"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Spades",
+        "value": "10"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "J"
+      },
+      0
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "K"
+      },
+      1
+    ],
+    [
+      {
+        "suit": "Hearts",
+        "value": "A"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Diamonds",
+        "value": "Q"
+      },
+      2
+    ],
+    [
+      {
+        "suit": "Diamonds",
+        "value": "10"
+      },
+      0
+    ]
+  ],
+  "trump": "Hearts",
+  "high_bid": 50,
+  "high_bidder": 2,
+  "current_bid": null,
+  "dropped_bid": true,
+  "saved_bid": null,
+  "trick": {
+    "n_players": 3,
+    "trump": "Hearts",
+    "cards": [
+      {
+        "suit": "Diamonds",
+        "value": "Q"
+      },
+      {
+        "suit": "Diamonds",
+        "value": "10"
+      }
+    ],
+    "card_to_beat": {
+      "suit": "Diamonds",
+      "value": "10"
+    },
+    "trump_played": false,
+    "card_players": [
+      2,
+      0
+    ],
+    "winner": 0,
+    "complete": false
+  },
+  "trick_winner": 2,
+  "remaining_cards": {
+    "Spades": {
+      "9": 4,
+      "10": 4,
+      "J": 4,
+      "Q": 4,
+      "K": 4,
+      "A": 4
+    },
+    "Hearts": {
+      "9": 4,
+      "10": 4,
+      "J": 4,
+      "Q": 4,
+      "K": 4,
+      "A": 4
+    },
+    "Clubs": {
+      "9": 4,
+      "10": 4,
+      "J": 4,
+      "Q": 4,
+      "K": 4,
+      "A": 4
+    },
+    "Diamonds": {
+      "9": 4,
+      "10": 4,
+      "J": 4,
+      "Q": 4,
+      "K": 4,
+      "A": 4
+    }
+  },
+  "kitty": {
+    "id": "438c1b38-4466-45e3-a18c-84fa687e432c",
+    "name": "Kitty",
+    "balance": 0,
+    "user_name": "Kitty",
+    "score": 0,
+    "player_type": "Kitty",
+    "index": -1,
+    "tricks": [],
+    "took_last_trick": null,
+    "hand": {
+      "deck_type": "Hand",
+      "cards": [
+        {
+          "suit": "Hearts",
+          "value": "10"
+        },
+        {
+          "suit": "Hearts",
+          "value": "J"
+        },
+        {
+          "suit": "Spades",
+          "value": "K"
+        },
+        {
+          "suit": "Hearts",
+          "value": "10"
+        },
+        {
+          "suit": "Diamonds",
+          "value": "Q"
+        }
+      ]
+    },
+    "is_high_bidder": null,
+    "partner": -1
+  }
+}

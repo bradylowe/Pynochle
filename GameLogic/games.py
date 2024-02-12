@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath('./'))
 here = os.path.dirname(os.path.abspath(__file__))
 base_path = os.path.dirname(here)
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 from uuid import uuid4
 import json
 from datetime import datetime
@@ -39,6 +39,12 @@ class Pinochle:
     n_cards_to_pass = 3
     winning_score = 350
     partner_gets_points = False
+
+    type_from_str = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        Pinochle.type_from_str[cls.__name__] = cls
 
     def __init__(self, players=None, printing=False, logging=False):
 
@@ -168,6 +174,55 @@ class Pinochle:
             'trick_winner': None if self.trick_winner is None else self.trick_winner.index,
             'remaining_cards': self.remaining_cards,
         }
+
+    @staticmethod
+    def restore_state(state: dict, printing: bool = False, logging: bool = False) -> 'Pinochle':
+        game_type = Pinochle.type_from_str[state['game_type']]
+        game = game_type(printing=printing, logging=logging)
+        for key in state:
+            if key == 'game_type':
+                continue
+            game.__setattr__(key, state[key])
+
+        game.players = [PinochlePlayer.restore_state(state) for state in state['players']]
+        game.deck_type = PinochleDeck.type_from_str[game.deck_type]
+        game.cards_played = [(Card.restore_state(c), p) for c, p in game.cards_played]
+
+        if game.trick is not None:
+            game.trick = Trick.restore_state(state['trick'])
+
+        game.finalize_restore_state(state)
+        return game
+
+    def finalize_restore_state(self, state: dict):
+        self.replace_player_index_with_player()
+
+    def get_player_by_index_map(self) -> Dict[int, PinochlePlayer]:
+        return {p.index: p for p in self.players}
+
+    def replace_player_index_with_player(self):
+        player_index_map = self.get_player_by_index_map()
+
+        for player in self.players:
+            player.replace_player_index_with_player(player_index_map)
+
+        if isinstance(self.human_player, int):
+            self.human_player = player_index_map[self.human_player]
+
+        if self.current_players and isinstance(self.current_players[0], int):
+            self.current_players = [player_index_map[p] for p in self.current_players]
+
+        if self.cards_played and isinstance(self.cards_played[0][1], int):
+            self.cards_played = [(c, player_index_map[p]) for c, p in self.cards_played]
+
+        if isinstance(self.high_bidder, int):
+            self.high_bidder = player_index_map[self.high_bidder]
+
+        if self.trick is not None:
+            self.trick.replace_player_index_with_player(player_index_map)
+
+        if isinstance(self.trick_winner, int):
+            self.trick_winner = player_index_map[self.trick_winner]
 
     def get_shared_state(self):
         state = self.get_state()
@@ -541,6 +596,16 @@ class FirehousePinochle(DoubleDeckPinochle):
         state['players'] = [p.get_shared_state() for p in self.players]
         state['kitty'] = self.kitty.get_shared_state()
         return state
+
+    def get_player_by_index_map(self) -> Dict[int, PinochlePlayer]:
+        return {
+            **super().get_player_by_index_map(),
+            -1: self.kitty,
+        }
+
+    def finalize_restore_state(self, state: dict):
+        self.kitty = PinochlePlayer.restore_state(state['kitty'])
+        super().finalize_restore_state(state)
 
     def _deal_cards(self):
         super()._deal_cards()

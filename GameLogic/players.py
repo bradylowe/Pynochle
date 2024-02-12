@@ -8,6 +8,12 @@ from GameLogic.tricks import Trick
 
 class PinochlePlayer:
 
+    type_from_str = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        PinochlePlayer.type_from_str[cls.__name__] = cls
+
     def __init__(self, name, balance=0, user_name=None):
         self.id = str(uuid4())
         self.name = name
@@ -29,6 +35,28 @@ class PinochlePlayer:
 
     def remove_points(self, points):
         self.score -= points
+
+    @staticmethod
+    def restore_state(state: dict) -> 'PinochlePlayer':
+        player_type = PinochlePlayer.type_from_str[state['player_type']]
+        player = player_type(state['name'])
+        for key in state:
+            if key == 'player_type':
+                continue
+            player.__setattr__(key, state[key])
+
+        player.tricks = [Trick.restore_state(t) for t in state['tricks']]
+        player.hand = Hand.restore_state(state['hand'])
+        player.meld = Meld(player.hand)
+
+        return player
+
+    def replace_player_index_with_player(self, player_index_map: dict):
+        if self.tricks:
+            for trick in self.tricks:
+                trick.replace_player_index_with_player(player_index_map)
+        if self.partner is not None and isinstance(self.partner, int):
+            self.partner = player_index_map[self.partner]
 
     def get_state(self):
         return {

@@ -93,6 +93,18 @@ class Trick:
             'complete': self.complete,
         }
 
+    @staticmethod
+    def restore_state(state: dict) -> 'Trick':
+        trick = Trick(state['n_players'], state['trump'])
+        trick.trump = state['trump']
+        trick.cards = [Card.restore_state(c) for c in state['cards']]
+        trick.card_to_beat = Card.restore_state(state['card_to_beat'])
+        trick.card_players = state['card_players']
+        return trick
+
+    def replace_player_index_with_player(self, player_index_map: dict):
+        self.card_players = [player_index_map[p] for p in self.card_players]
+
     def __str__(self):
         return ' | '.join([str(card) for card in self.cards])
 

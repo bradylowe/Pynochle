@@ -50,6 +50,10 @@ class Card:
     def random():
         return Card(Card.random_suit(), Card.random_value())
 
+    @staticmethod
+    def restore_state(state: dict) -> 'Card':
+        return Card(state['suit'], state['value'])
+
     def get_state(self):
         return {'suit': self.suit, 'value': self.value}
 
@@ -84,6 +88,12 @@ class Card:
 
 
 class PartialDeck:
+
+    type_from_str = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        PartialDeck.type_from_str[cls.__name__] = cls
 
     def __init__(self, cards):
         self.cards = cards
@@ -132,6 +142,12 @@ class PartialDeck:
             'deck_type': self.__class__.__name__,
             'cards': [card.get_state() for card in self.cards],
         }
+
+    @staticmethod
+    def restore_state(state: dict) -> 'PartialDeck':
+        cards = [Card.restore_state(c) for c in state['cards']]
+        deck_type = PartialDeck.type_from_str[state['deck_type']]
+        return deck_type(cards)
 
     def __str__(self):
         return self.to_str(color=True, symbol=True)

@@ -21,7 +21,7 @@ class Trick:
 
     @property
     def trump_played(self):
-        return self.card_to_beat.suit is self.trump
+        return self.card_to_beat.suit == self.trump
 
     @property
     def complete(self):
@@ -33,10 +33,10 @@ class Trick:
 
         if not self.card_to_beat:
             self.card_to_beat = card
-        elif card.suit is self.trump:
-            if self.card_to_beat.suit is not self.trump or card > self.card_to_beat:
+        elif card.suit == self.trump:
+            if self.card_to_beat.suit != self.trump or card > self.card_to_beat:
                 self.card_to_beat = card
-        elif card.suit is self.card_to_beat.suit and card > self.card_to_beat:
+        elif card.suit == self.card_to_beat.suit and card > self.card_to_beat:
             self.card_to_beat = card
 
     def can_beat_winning_card(self, cards: Iterable[Card]):

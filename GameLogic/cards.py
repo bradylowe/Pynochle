@@ -105,7 +105,10 @@ class PartialDeck:
         self.cards.extend(list(cards))
 
     def discard(self, card: Card):
-        self.cards.remove(card)
+        for idx in range(len(self.cards)):
+            if self.cards[idx] == card:
+                del self.cards[idx]
+                break
 
     def discard_many(self, cards: Iterable[Card]):
         for card in cards:

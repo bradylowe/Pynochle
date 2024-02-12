@@ -294,6 +294,17 @@ class Hand(PartialDeck):
     def has_suit(self, suit):
         return len(self.sorted_by_suit[suit]) > 0
 
+    def backup_suit(self, trump: str) -> str:
+        best_count, best_suit = 0, None
+        for suit in Card.suits:
+            if suit == trump:
+                continue
+            count = len(self.sorted_by_suit[suit])
+            if count > best_count:
+                best_count = count
+                best_suit = suit
+        return best_suit
+
     def has_marriage(self, suit):
         k, q = Card(suit, 'K'), Card(suit, 'Q')
         return k in self.sorted_by_suit[suit] and q in self.sorted_by_suit[suit]

@@ -312,6 +312,7 @@ class Kitty(PinochlePlayer):
 
     def __init__(self, name='Kitty', balance=0, user_name=None):
         super().__init__(name, balance, user_name)
+        self.index = -1
 
     def take_cards(self, cards):
         self.hand.add_cards(cards)

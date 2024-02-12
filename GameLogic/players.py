@@ -91,7 +91,6 @@ class PinochlePlayer:
         else:
             for card in cards:
                 self.hand.discard(card)
-        self.meld = Meld(self.hand)
         return cards
 
     def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:

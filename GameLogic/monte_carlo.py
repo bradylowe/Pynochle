@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath('./'))
 
+import json
 from typing import Optional, List
 import numpy as np
 
@@ -480,13 +481,21 @@ def choose_next_card(
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
-    parser = ArgumentParser('Run the Monte Carlo bidding simulation')
+    parser = ArgumentParser('Run a Monte Carlo simulation')
     parser.add_argument('--compare_players', action='store_true', help='Compare player types based on counters pulled')
     parser.add_argument('--meld_analysis', action='store_true', help='Analyze power, rank, and meld distributions')
+    parser.add_argument('--next_card', action='store_true', help='Look at the "next card" prediction distributions')
+    parser.add_argument('--best_suit', action='store_true', help='Play a random hand, try calling each suit trump')
+
     parser.add_argument('--trials', type=int, default=1000, help='Number of trials per suit per bid')
     parser.add_argument('--player', type=str, default='simple', choices=['simple', 'random'], help='Player type')
     parser.add_argument('--opponent', type=str, default='random', choices=['simple', 'random'], help='Opponent type')
     args = parser.parse_args()
+
+    player_types = {
+        'simple': SimplePinochlePlayer,
+        'random': RandomPinochlePlayer,
+    }
 
     # Compare players head-to-head, show results, and exit
     if args.compare_players:
@@ -498,48 +507,55 @@ if __name__ == "__main__":
         power_rank_meld_distributions(args.trials)
         exit()
 
-    hand = FirehousePinochleDeck.get_random_hand()
+    # Generate distributions for the next card to play in a hand
+    if args.next_card:
+        with open('logs/game_state.json', 'r') as f:
+            game_state = json.load(f)
+        choose_next_card(game_state=game_state, n_trials=args.trials, plot_results=True)
+        exit()
 
-    print('Hand:')
-    print(hand)
+    # Try playing a random hand many times, and find out which suit is best for trump
+    if args.best_suit:
 
-    player_types = {
-        'simple': SimplePinochlePlayer,
-        'random': RandomPinochlePlayer,
-    }
+        hand = FirehousePinochleDeck.get_random_hand()
 
-    player_type = player_types[args.player]
-    other_player_type = player_types[args.opponent]
+        print('Hand:')
+        print(hand)
 
-    counters = {}
-    meld = {}
-    for suit in Card.suits:
-        if not hand.has_marriage(suit):
-            continue
+        player_type = player_types[args.player]
+        other_player_type = player_types[args.opponent]
 
-        counters[suit], meld[suit] = simulate_full_hand(
-            hand,
-            suit,
-            args.trials,
-            player_type,
-            other_player_type=other_player_type,
-        )
+        counters = {}
+        meld = {}
+        for suit in Card.suits:
+            if not hand.has_marriage(suit):
+                continue
 
-        min_counters = min(counters[suit])
-        max_counters = max(counters[suit])
-        sum_counters = sum(counters[suit])
-        n_counters = len(counters[suit])
+            counters[suit], meld[suit] = simulate_full_hand(
+                hand,
+                suit,
+                args.trials,
+                player_type,
+                other_player_type=other_player_type,
+            )
 
-        mean_counters = round(sum_counters / n_counters, 2)
-        dev_counters = sum([abs(mean_counters - x) for x in counters[suit]])
-        std_counters = round(dev_counters / n_counters, 2)
+            min_counters = min(counters[suit])
+            max_counters = max(counters[suit])
+            sum_counters = sum(counters[suit])
+            n_counters = len(counters[suit])
 
-        print(f'{suit} counter stats: min={min_counters}, max={max_counters}, mean={mean_counters}, std={std_counters}')
+            mean_counters = round(sum_counters / n_counters, 2)
+            dev_counters = sum([abs(mean_counters - x) for x in counters[suit]])
+            std_counters = round(dev_counters / n_counters, 2)
 
-    plot_bar_charts(counters, label='Counters')
-    #plot_bar_charts(meld, label='Meld')
-    if len(counters) > 1:
-        plot_bar_chart_combined(counters, title='Counters pulled per suit')
-        plot_histogram_combined(counters, title='Counters pulled per suit')
-        #plot_histogram_combined(meld, title='Meld per suit')
-        #plot_bar_chart_combined(meld, title='Meld per suit')
+            print(f'{suit} counter stats: min={min_counters}, max={max_counters}, mean={mean_counters}, std={std_counters}')
+
+        plot_bar_charts(counters, label='Counters')
+        #plot_bar_charts(meld, label='Meld')
+        if len(counters) > 1:
+            plot_bar_chart_combined(counters, title='Counters pulled per suit')
+            plot_histogram_combined(counters, title='Counters pulled per suit')
+            #plot_histogram_combined(meld, title='Meld per suit')
+            #plot_bar_chart_combined(meld, title='Meld per suit')
+
+        exit()

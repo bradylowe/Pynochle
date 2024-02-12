@@ -117,9 +117,6 @@ class PinochlePlayer:
 
 class RandomPinochlePlayer(PinochlePlayer):
 
-    def __init__(self, name, balance=0, user_name=None):
-        super().__init__(name, balance, user_name)
-
     def play_card(self, trick):
         options = trick.legal_plays(self.hand)
         return self.hand.play(np.random.choice(options))
@@ -133,14 +130,11 @@ class RandomPinochlePlayer(PinochlePlayer):
     def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         return np.random.choice(self.hand.cards, n, replace=False)
 
-    def should_pay_trick(self, trick, remaining_players=None):
+    def should_pay_trick(self, trick):
         return bool(np.random.randint(2))
 
 
 class SimplePinochlePlayer(RandomPinochlePlayer):
-
-    def __init__(self, name, balance=0, user_name=None):
-        super().__init__(name, balance, user_name)
 
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         best_suit = self.meld.best_ranked_suit
@@ -177,9 +171,6 @@ class SimplePinochlePlayer(RandomPinochlePlayer):
 
 class SkilledPinochlePlayer(SimplePinochlePlayer):
 
-    def __init__(self, name, balance=0, user_name=None):
-        super().__init__(name, balance, user_name)
-
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         # Decide when to bet big
         # Decide when to drop the bid on someone
@@ -204,9 +195,6 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
 
 
 class MonteCarloPinochlePlayer(SimplePinochlePlayer):
-
-    def __init__(self, name, balance=0, user_name=None):
-        super().__init__(name, balance, user_name)
 
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         # Decide when to bet big

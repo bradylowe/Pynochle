@@ -23,11 +23,21 @@ from GameLogic.players import (
     PinochlePlayer,
     RandomPinochlePlayer,
     SimplePinochlePlayer,
+    HumanPinochlePlayer,
 )
 from GameLogic.meld import Meld
 
 
-def test_hand_monto_carlo(
+# Variables for plotting
+suit_colors = {
+    'Spades': 'black',
+    'Hearts': 'red',
+    'Clubs': 'blue',
+    'Diamonds': '#b72450',
+}
+
+
+def simulate_full_hand(
     hand: Hand,
     trump: str,
     n_trials: int,
@@ -112,12 +122,6 @@ def plot_bar_charts(results: dict, label: str = 'Counts', log: bool = False):
 
     # Create the grid of plots
     fig, axs = plt.subplots(len(results), 1)
-    colors = {
-        'Spades': 'black',
-        'Hearts': 'red',
-        'Clubs': 'blue',
-        'Diamonds': '#b72450',
-    }
 
     # Flatten all plots into a list
     all_axes = axs.flat if len(results) > 1 else [axs]
@@ -142,7 +146,7 @@ def plot_bar_charts(results: dict, label: str = 'Counts', log: bool = False):
     for ax, suit, val, counts in zip(all_axes, suits, values_by_suit, counts_by_suit):
 
         # Plot the data
-        ax.bar(val, counts, width=0.4, label=label, alpha=0.6, color=colors[suit])
+        ax.bar(val, counts, width=0.4, label=label, alpha=0.6, color=suit_colors[suit])
 
         # Customize the chart
         ax.set_title(suit)
@@ -158,17 +162,12 @@ def plot_bar_charts(results: dict, label: str = 'Counts', log: bool = False):
 
 
 def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: bool = False):
+
     # Initialize plot
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Variables for plotting
     width = 0.2  # Width of each bar
-    colors = {
-        'Spades': 'black',
-        'Hearts': 'red',
-        'Clubs': 'blue',
-        'Diamonds': '#b72450',
-    }
 
     # Find the unique vals across all suits for consistent x-axis
     all_vals = set()
@@ -189,7 +188,7 @@ def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: 
         unique_vals, counts = np.unique(vals, return_counts=True)
         positions = [positions_map[val] + (i * width) for val in unique_vals]
 
-        ax.bar(positions, counts, width=width, label=suit, alpha=0.6, color=colors[suit])
+        ax.bar(positions, counts, width=width, label=suit, alpha=0.6, color=suit_colors[suit])
 
         # Increment chart counter
         i += 1
@@ -209,22 +208,15 @@ def plot_bar_chart_combined(results: dict, title: str = 'Counts per suit', log: 
 
 
 def plot_histogram_combined(results: dict, title: str = 'Counts per suit', bins: int = 35, log: bool = False):
+
     # Initialize plot
     fig, ax = plt.subplots(figsize=(10, 8))
-
-    # Variables for plotting
-    colors = {
-        'Spades': 'black',
-        'Hearts': 'red',
-        'Clubs': 'blue',
-        'Diamonds': '#b72450',
-    }
 
     # Assuming the range and distribution of your data are known, adjust bins accordingly
     bins = np.linspace(min(min(results.values())), max(max(results.values())), bins)
 
     # Plot data for each suit
-    for suit, color in colors.items():
+    for suit, color in suit_colors.items():
         vals = results.get(suit, [])
         if len(vals) == 0:
             continue
@@ -363,7 +355,7 @@ if __name__ == "__main__":
         if not hand.has_marriage(suit):
             continue
 
-        counters[suit], meld[suit] = test_hand_monto_carlo(
+        counters[suit], meld[suit] = simulate_full_hand(
             hand,
             suit,
             args.trials,
@@ -389,12 +381,3 @@ if __name__ == "__main__":
         plot_histogram_combined(counters, title='Counters pulled per suit')
         #plot_histogram_combined(meld, title='Meld per suit')
         #plot_bar_chart_combined(meld, title='Meld per suit')
-
-    """
-    Notes
-    -----
-    
-    - Can set meld value manually in order to account for different meld
-    - Can set bid value manually in order to test best trump suit
-    
-    """

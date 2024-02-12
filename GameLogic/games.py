@@ -374,7 +374,6 @@ class Pinochle:
         lead_idx = self.current_players.index(leader)
         n = len(self.current_players)
         self.current_players = [self.current_players[(lead_idx + i) % n] for i in range(n)]
-        leader.is_high_bidder = True
 
         if self.human_player:
             if self.human_player.partner is self.current_players[0]:

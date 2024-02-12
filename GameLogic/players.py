@@ -19,7 +19,6 @@ class PinochlePlayer:
         self.took_last_trick = None
         self.hand = Hand()
         self.meld = Meld(self.hand)
-        self.is_high_bidder = None
         self.partner = None
         self.trump = None
         self.position = None
@@ -43,8 +42,6 @@ class PinochlePlayer:
             'tricks': [t.get_state() for t in self.tricks],
             'took_last_trick': self.took_last_trick,
             'hand': self.hand.get_state(),
-            'meld': self.meld.final,
-            'is_high_bidder': self.is_high_bidder,
             'partner': None if self.partner is None else self.partner.index,
         }
 
@@ -58,7 +55,6 @@ class PinochlePlayer:
             'tricks': [t.get_state() for t in self.tricks],
             'took_last_trick': self.took_last_trick,
             'meld': self.meld.final,
-            'is_high_bidder': self.is_high_bidder,
             'partner': self.partner.index,
             'trump': self.trump,
             'position': self.position,
@@ -69,7 +65,6 @@ class PinochlePlayer:
         self.took_last_trick = None
         self.hand = Hand()
         self.meld = Meld(self.hand)
-        self.is_high_bidder = None
         self.partner = None
         self.trump = None
         self.position = None

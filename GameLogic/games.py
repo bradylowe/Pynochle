@@ -444,6 +444,10 @@ class Pinochle:
             self.log_state(f'WAITING ON PLAYER {self.high_bidder.index} TO CALL TRUMP', save_state=False)
             self.trump = self.high_bidder.choose_trump()
 
+        # Update player states
+        for p in self.current_players:
+            p.trump = self.trump
+
         self.print(f'Trump is {self.trump}')
         self.log_state('CALL TRUMP')
 

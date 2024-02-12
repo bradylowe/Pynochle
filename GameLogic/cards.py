@@ -121,6 +121,9 @@ class PartialDeck:
             raise AttributeError('Cannot choose a random card, no cards in the deck')
         return np.random.choice(self.cards)
 
+    def clear(self):
+        self.cards = []
+
     def to_str(self, color=False, symbol=False):
         return ', '.join([card.to_str(color, symbol) for card in self.cards])
 
@@ -302,6 +305,10 @@ class Hand(PartialDeck):
                 enumerated[idx] = card
                 idx += 1
         return enumerated
+
+    def clear(self):
+        super().clear()
+        self.sorted_by_suit = {}
 
     def to_str(self, color=False, symbol=False):
         return ' | '.join([', '.join([card.to_str(color, symbol) for card in suit]) or 'None'

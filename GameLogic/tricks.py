@@ -1,6 +1,5 @@
 from typing import Iterable
 from GameLogic.cards import Card, Hand
-from GameLogic.players import PinochlePlayer
 
 
 class Trick:
@@ -28,7 +27,7 @@ class Trick:
     def complete(self):
         return len(self) == self.n_players
 
-    def add_card(self, card: Card, player: PinochlePlayer):
+    def add_card(self, card: Card, player: 'PinochlePlayer'):
         self.cards.append(card)
         self.card_players.append(player)
 
@@ -89,8 +88,8 @@ class Trick:
             'cards': [c.get_state() for c in self.cards],
             'card_to_beat': self.card_to_beat.get_state(),
             'trump_played': self.trump_played,
-            'card_players': [p.id for p in self.card_players],
-            'winner': self.winner().id,
+            'card_players': [p.index for p in self.card_players],
+            'winner': self.winner().index,
             'complete': self.complete,
         }
 

@@ -422,7 +422,8 @@ class Pinochle:
     def play_next_card(self, player: PinochlePlayer):
 
         self.log_state(f'WAITING ON PLAYER {player.index} TO PLAY CARD', save_state=False)
-        card = player.play_card(self.trick)
+        card = player.choose_card_to_play(self.trick)
+        player.play_card(card)
         self.trick.add_card(card, player)
 
         self.cards_played.append((card, player))

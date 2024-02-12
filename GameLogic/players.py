@@ -3,6 +3,7 @@ from uuid import uuid4
 import numpy as np
 from GameLogic.cards import Card, Hand, PinochleDeck
 from GameLogic.meld import Meld
+from GameLogic.tricks import Trick
 
 
 class PinochlePlayer:
@@ -76,14 +77,17 @@ class PinochlePlayer:
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         pass
 
-    def play_card(self, trick):
+    def choose_trump(self):
+        pass
+
+    def choose_card_to_play(self, trick: Trick) -> Card:
         # Todo: improve card choice algorithm to account for who played what in the trick (pay partner)
         # Todo: players should keep track of how many Aces and trump have been played (observe)
         # Todo: players should know which other players are out of which suit (observe)
         pass
 
-    def choose_trump(self):
-        pass
+    def play_card(self, card: Card) -> Card:
+        return self.discard(card)
 
     def discard(self, cards: Union[Card, List[Card]]):
         if isinstance(cards, Card):
@@ -117,9 +121,9 @@ class PinochlePlayer:
 
 class RandomPinochlePlayer(PinochlePlayer):
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         options = trick.legal_plays(self.hand)
-        return self.hand.play(np.random.choice(options))
+        return np.random.choice(options)
 
     def choose_trump(self):
         trump = None
@@ -143,7 +147,7 @@ class SimplePinochlePlayer(RandomPinochlePlayer):
         if new_bid <= max_bid:
             return new_bid
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         options = trick.legal_plays(self.hand)
         if self.should_pay_trick(trick):
             counters = sorted(PinochleDeck.get_counters(options))
@@ -154,7 +158,7 @@ class SimplePinochlePlayer(RandomPinochlePlayer):
             non_counters = sorted(PinochleDeck.get_non_counters(options), reverse=True)
             card = non_counters[0] if non_counters else options[-1]
 
-        return self.hand.play(card)
+        return card
 
     def choose_trump(self):
         return self.meld.best_ranked_suit
@@ -176,7 +180,7 @@ class SkilledPinochlePlayer(SimplePinochlePlayer):
         # Decide when to drop the bid on someone
         pass
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         # Decide whether to take the trick
         # Decide what to play into partner (back-seat)
         # Decide what to play into non-partner
@@ -201,7 +205,7 @@ class MonteCarloPinochlePlayer(SimplePinochlePlayer):
         # Decide when to drop the bid on someone
         pass
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         # Decide whether to take the trick
         # Decide what to play into partner (back-seat)
         # Decide what to play into non-partner
@@ -235,7 +239,7 @@ class HumanPinochlePlayer(PinochlePlayer):
         except ValueError:
             return None
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         print(' ')
         legal = Hand(trick.legal_plays(self.hand))
         print('Please choose a card to play.')
@@ -256,7 +260,7 @@ class HumanPinochlePlayer(PinochlePlayer):
             except KeyError:
                 print('Invalid choice of card.')
                 card = None
-        return self.hand.play(card)
+        return card
 
     def choose_trump(self):
         print(' ')
@@ -315,7 +319,7 @@ class Kitty(PinochlePlayer):
     def place_bid(self, current_bid: int, bid_increment: int) -> int:
         pass
 
-    def play_card(self, trick):
+    def choose_card_to_play(self, trick: Trick) -> Card:
         pass
 
     def choose_trump(self):

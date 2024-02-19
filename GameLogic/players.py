@@ -150,10 +150,11 @@ class RandomPinochlePlayer(PinochlePlayer):
         return np.random.choice(options)
 
     def choose_trump(self):
-        trump = None
-        while trump is None or not self.hand.can_call_suit_as_trump(trump):
-            trump = Card.suits[np.random.randint(4)]
-        return trump
+        suit = None
+        for suit in np.random.permutation(Card.suits):
+            if self.hand.can_call_suit_as_trump(suit):
+                break
+        return suit
 
     def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:
         return np.random.choice(self.hand.cards, n, replace=False)

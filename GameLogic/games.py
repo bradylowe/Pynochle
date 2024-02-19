@@ -517,6 +517,20 @@ class Pinochle:
             self.high_bidder.remove_points(self.high_bid)
             self.log_state(f'HAND RESULT: PLAYER {self.high_bidder.index} WAS SET')
 
+    def can_play_hand(self) -> bool:
+        """
+        Make sure the player has a marriage in trump and sufficient meld to save the bid
+        """
+        if self.trump is None:
+            return False
+        if not self.high_bidder.hand.has_marriage(self.trump):
+            return False
+
+        total_counters = self.last_trick_value + self.deck_type.total_counters()
+        if self.high_bid > self.high_bidder.meld.total_meld_given_trump[self.trump] + total_counters:
+            return False
+        return True
+
     def play_hand(self):
         self.log_state('START HAND', save_state=False)
         self.start_next_hand()
@@ -533,9 +547,10 @@ class Pinochle:
         self.pass_cards()
         self.declare_meld()
 
-        self.log_state('START TRICKS', save_state=False)
-        self.play_tricks()
-        self.log_state('END TRICKS', save_state=False)
+        if self.can_play_hand():
+            self.log_state('START TRICKS', save_state=False)
+            self.play_tricks()
+            self.log_state('END TRICKS', save_state=False)
 
         self.update_scores()
         self.log_state('END HAND', save_state=False)

@@ -151,7 +151,7 @@ class RandomPinochlePlayer(PinochlePlayer):
 
     def choose_trump(self):
         trump = None
-        while trump is None or not self.hand.has_suit(trump):
+        while trump is None or not self.hand.can_call_suit_as_trump(trump):
             trump = Card.suits[np.random.randint(4)]
         return trump
 
@@ -425,9 +425,6 @@ class Kitty(PinochlePlayer):
         pass
 
     def choose_card_to_play(self, trick: Trick) -> Card:
-        pass
-
-    def choose_trump(self):
         pass
 
     def _choose_cards_to_pass(self, n: int = 0) -> List[Card]:

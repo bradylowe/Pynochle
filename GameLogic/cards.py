@@ -202,6 +202,10 @@ class PinochleDeck(Deck):
         Card.values = self.values
         super().__init__()
 
+    @classmethod
+    def total_counters(cls):
+        return 12 * cls.card_instances
+
     def get_state(self):
         return {
             **super().get_state(),
@@ -305,9 +309,12 @@ class Hand(PartialDeck):
                 best_suit = suit
         return best_suit
 
-    def has_marriage(self, suit):
+    def has_marriage(self, suit: str) -> bool:
         k, q = Card(suit, 'K'), Card(suit, 'Q')
         return k in self.sorted_by_suit[suit] and q in self.sorted_by_suit[suit]
+
+    def can_call_suit_as_trump(self, suit: str) -> bool:
+        return self.has_marriage(suit)
 
     def choose_random_card(self, suit=None):
         if len(self.cards) == 0:
